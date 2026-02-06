@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
-  "applicationId": "js.neutralino.sample",
+  "applicationId": "js.ssis",
   "version": "1.0.0",
   "defaultMode": "window",
   "port": 0,
@@ -10,73 +10,45 @@
   "enableNativeAPI": true,
   "tokenSecurity": "one-time",
   "logging": {
-    "enabled": true,
-    "writeToLogFile": true
+    "enabled": false,
+    "writeToLogFile": false
   },
   "nativeAllowList": [
     "app.*",
     "os.*",
-    "debug.log"
+    "debug.log",
+    "filesystem.*",
+    "window.*"
   ],
-  "globalVariables": {
-    "TEST1": "Hello",
-    "TEST2": [
-      2,
-      4,
-      5
-    ],
-    "TEST3": {
-      "value1": 10,
-      "value2": {}
-    }
-  },
+  "globalVariables": {},
   "modes": {
     "window": {
-      "title": "ssis",
-      "width": 800,
-      "height": 500,
+      "title": "Simple Student Information System",
+      "width": 1300,
+      "height": 905,
       "minWidth": 400,
       "minHeight": 200,
       "center": true,
       "fullScreen": false,
       "alwaysOnTop": false,
-      "icon": "/resources/icons/appIcon.png",
-      "enableInspector": true,
-      "borderless": false,
+      "icon": "/src/img/icon.png",
+      "enableInspector": false,
+      "borderless": true,
       "maximize": false,
       "hidden": false,
-      "resizable": true,
-      "exitProcessOnClose": false
+      "resizable": false,
+      "exitProcessOnClose": false,
+      "useSavedState": false
     },
-    "browser": {
-      "globalVariables": {
-        "TEST": "Test value browser"
-      },
-      "nativeBlockList": [
-        "filesystem.*"
-      ]
-    },
-    "cloud": {
-      "url": "/resources/#cloud",
-      "nativeAllowList": [
-        "app.*"
-      ]
-    },
-    "chrome": {
-      "width": 800,
-      "height": 500,
-      "args": "--user-agent=\"Neutralinojs chrome mode\"",
-      "nativeBlockList": [
-        "filesystem.*",
-        "os.*"
-      ]
-    }
+    "browser": {},
+    "cloud": {},
+    "chrome": {}
   },
   "cli": {
     "binaryName": "ssis",
-    "resourcesPath": "/resources/",
-    "extensionsPath": "/extensions/",
-    "clientLibrary": "/resources/js/neutralino.js",
+    "resourcesPath": "/src/",
+    "extensionsPath": "/ext/",
+    "clientLibrary": "/src/js/neutralino.js",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0"
   }
