@@ -10,6 +10,8 @@ function initTitleBar() {
     if($titleBar.length) Neutralino.window.setDraggableRegion($titleBar[0], { exclude: [$minimizeBtn[0], $closeBtn[0]].filter(Boolean) });
     if($minimizeBtn.length) $minimizeBtn.on('click', async () => Neutralino.window.minimize());
     if($closeBtn.length) $closeBtn.on('click', async () => Neutralino.app.exit());
+
+    Neutralino.events('onWindowClose', () => Neutralino.app.exit());
 }
 
 Neutralino.init();
