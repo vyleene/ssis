@@ -8,16 +8,17 @@
     <link rel="stylesheet" href="/css/styles.css"/>
   </head>
   <body>
-    <div id="neutralinoapp">
-      <h1>NeutralinoJs</h1>
-      <div id="info"></div>
-      <br/>
-      <img src="/icons/logo.gif" alt="Neutralinojs" />
-      <div>
-        <a href="#" onclick="openDocs();">Docs</a> &middot;  
-        <a href="#" onclick="openTutorial();">Video tutorial</a>
+    <!-- Titlebar -->
+    <header class="app-titlebar" id="app-titlebar">
+      <div class="app-titlebar__brand">
+        <span class="app-titlebar__dot"></span>
+        <span class="app-titlebar__title">Simple Student Information System</span>
       </div>
-    </div>
+      <div class="app-titlebar__actions">
+        <button class="titlebar-btn" id="btn-minimize" aria-label="Minimize window">—</button>
+        <button class="titlebar-btn titlebar-btn--close" id="btn-close" aria-label="Close window">✕</button>
+      </div>
+    </header>
 
     <!-- Neutralino -->
     <script src="/js/neutralino/neutralino.js"></script>
