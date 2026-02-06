@@ -11,7 +11,7 @@ function initTitleBar() {
     if($minimizeBtn.length) $minimizeBtn.on('click', async () => Neutralino.window.minimize());
     if($closeBtn.length) $closeBtn.on('click', async () => Neutralino.app.exit());
 
-    Neutralino.events('onWindowClose', () => Neutralino.app.exit());
+    Neutralino.events('windowClose', () => Neutralino.app.exit());
 }
 
 Neutralino.init();
