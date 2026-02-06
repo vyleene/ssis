@@ -2,8 +2,10 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>NeutralinoJs sample app</title>
-    <link rel="stylesheet" href="/styles.css">
+    <title>Simple Student Information System</title>
+    <link rel="stylesheet" href="/css/bootstrap/bootstrap.css"/>
+    <link rel="stylesheet" href="/css/bootstrap/datatables.css"/>
+    <link rel="stylesheet" href="/css/styles.css"/>
   </head>
   <body>
     <div id="neutralinoapp">
@@ -16,12 +18,16 @@
         <a href="#" onclick="openTutorial();">Video tutorial</a>
       </div>
     </div>
-    <!-- Neutralino.js client. This file is gitignored, 
-        because `neu update` typically downloads it.
-        Avoid copy-pasting it. 
-        -->
-    <script src="/js/neutralino.js"></script>
-    <!-- Your app's source files -->
+
+    <!-- Neutralino -->
+    <script src="/js/neutralino/neutralino.js"></script>
+
+    <!-- Plugins -->
+     <script src="/js/jquery/jquery.js"></script>
+     <script src="/js/bootstrap/bootstrap.js"></script>
+     <script src="/js/moment/moment.js"></script>
+     <script src="/js/datatables/datatables.js"></script>
+     
     <script src="/js/main.js"></script>
   </body>
 </html>
