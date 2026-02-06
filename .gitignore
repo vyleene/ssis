@@ -10,5 +10,6 @@ neutralino.js
 neutralino.d.ts
 
 # Neutralinojs related files
+.tmp
 .storage
 *.log
