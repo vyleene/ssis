@@ -40,3 +40,37 @@ body {
     align-items: center;
     gap: 8px;
 }
+
+.titlebar-btn {
+    width: 34px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.titlebar-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45);
+    background: #111827;
+}
+
+.titlebar-btn:active {
+    transform: translateY(0);
+}
+
+.titlebar-btn--close {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.4);
+}
+
+.titlebar-btn--close:hover {
+    background: rgba(248, 113, 113, 0.2);
+}
