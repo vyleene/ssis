@@ -14,4 +14,24 @@ function initTitleBar() {
     Neutralino.events.on('windowClose', () => Neutralino.app.exit());
 }
 
+function initDirectoryNav() {
+    const $navItems = $('.app-nav__item');
+    const $panels = $('.directory-panel');
+
+    $navItems.on('click', function() {
+        const target = $(this).attr('data-panel');
+
+        $navItems.removeClass('is-active');
+        $(this).addClass('is-active');
+
+        $panels.each((_, panel) => {
+            const $panel = $(panel);
+            const isActive = $panel.attr('data-panel') === target;
+            $panel.toggleClass('is-active', isActive);
+        });
+
+        if(typeof $ !== 'undefined' && $.fn.DataTable) $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust().responsive.recalc();
+    });
+}
+
 Neutralino.init();
