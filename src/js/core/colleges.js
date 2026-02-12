@@ -16,17 +16,73 @@ const createCollegeRecord = (code, name) => {
     return $row.prop('outerHTML');
 };
 
-async function reloadStudentTable() {
+async function reloadCollegeTable() {
     await loadCsvToTable(csvConfigs[2]);
     refreshDataTable('collegesTable');
 }
 
-function populateCollegeOptions(records) {
+let collegeRecordsCache = [];
+
+function populateCollegeOptions(records = collegeRecordsCache) {
+    if(Array.isArray(records) && records.length) {
+        collegeRecordsCache = records;
+    }
+
+    const sourceRecords = Array.isArray(records) ? records : collegeRecordsCache;
     const $select = $('#program-college');
-    const codes = Array.from(new Set(records.map(([code]) => code))).sort();
-    collegeOptionsTemplate = [$('<option>').attr({ value: '', selected: true, disabled: true }).text('Select college code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
+    const codes = Array.from(new Set(sourceRecords.map(([code]) => code))).sort();
+    const collegeOptionsTemplate = [$('<option>').attr({ value: '', selected: true, disabled: true }).text('Select college code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
 
     if(!$select.length) return;
 
     $select.empty().append(collegeOptionsTemplate.map((option) => option.clone()));
 }
+
+function openCollegeModal(mode, data = {}) {
+    const $modal = $('#collegeModal');
+    if(!$modal.length) return;
+
+    const $form = $('#college-form');
+    const $title = $('#collegeModalLabel');
+    const $submit = $('#college-submit');
+
+    const isEdit = mode === 'edit';
+    $form.attr('data-mode', mode);
+    $title.text(isEdit ? 'Edit College' : 'Add College');
+    $submit.text(isEdit ? 'Save Changes' : 'Add College');
+
+    $('#college-code').val(data.code || '').attr('placeholder', data.code || '');
+    $('#college-name').val(data.name || '').attr('placeholder', data.name || '');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+}
+
+function openDeleteCollegeModal(collegeId) {
+    const $modal = $('#deleteCollegeModal');
+    if(!$modal.length) return;
+
+    $('#delete-college-id').val(collegeId || '');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+}
+
+$(document).on('click', '#btn-add-college', () => openCollegeModal('add'));
+
+$(document).on('click', '.edit-college', function() {
+    const $btn = $(this);
+    openCollegeModal('edit', {
+        code: $btn.attr('data-id'),
+        name: $btn.attr('data-name'),
+    });
+});
+
+$(document).on('click', '.delete-college', function() {
+    const $btn = $(this);
+    openDeleteCollegeModal($btn.attr('data-id'));
+});
