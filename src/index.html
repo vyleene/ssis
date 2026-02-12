@@ -1,139 +1,139 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta charset="UTF-8">
     <title>Simple Student Information System</title>
-    <link rel="stylesheet" href="/css/bootstrap/bootstrap.css"/>
-    <link rel="stylesheet" href="/css/datatables/datatables.css"/>
-    <link rel="stylesheet" href="/css/heroicons/heroicons.css"/>
-    <link rel="stylesheet" href="/css/styles.css"/>
-  </head>
-  <body>
+    <link rel="stylesheet" href="/css/bootstrap/bootstrap.css" />
+    <link rel="stylesheet" href="/css/datatables/datatables.css" />
+    <link rel="stylesheet" href="/css/heroicons/heroicons.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
     <!-- Titlebar -->
     <header class="app-titlebar" id="app-titlebar">
-      <div class="app-titlebar__brand">
-        <span class="app-titlebar__dot"></span>
-        <span class="app-titlebar__title">Simple Student Information System</span>
-      </div>
-      <div class="app-titlebar__actions">
-        <button class="titlebar-btn" id="btn-minimize" aria-label="Minimize window">—</button>
-        <button class="titlebar-btn titlebar-btn--close" id="btn-close" aria-label="Close window">✕</button>
-      </div>
+        <div class="app-titlebar__brand">
+            <span class="app-titlebar__dot"></span>
+            <span class="app-titlebar__title">Simple Student Information System</span>
+        </div>
+        <div class="app-titlebar__actions">
+            <button class="titlebar-btn" id="btn-minimize" aria-label="Minimize window">—</button>
+            <button class="titlebar-btn titlebar-btn--close" id="btn-close" aria-label="Close window">✕</button>
+        </div>
     </header>
 
     <!-- Directory Navigation -->
     <nav class="app-nav" aria-label="Directory navigation">
-      <div class="app-nav__container">
-        <button class="app-nav__item is-active" type="button" data-panel="students">
-          <span class="heroicon-url heroicon-url-outline icon-user-group" aria-hidden="true"></span>
-          Student Directory
-        </button>
-        <button class="app-nav__item" type="button" data-panel="programs">
-          <span class="heroicon-url heroicon-url-outline icon-clipboard-document" aria-hidden="true"></span>
-          Program Directory
-        </button>
-        <button class="app-nav__item" type="button" data-panel="colleges">
-          <span class="heroicon-url heroicon-url-outline icon-building-library" aria-hidden="true"></span>
-          College Directory
-        </button>
-      </div>
+        <div class="app-nav__container">
+            <button class="app-nav__item is-active" type="button" data-panel="students">
+                <span class="heroicon-url heroicon-url-outline icon-user-group" aria-hidden="true"></span>
+                Student Directory
+            </button>
+            <button class="app-nav__item" type="button" data-panel="programs">
+                <span class="heroicon-url heroicon-url-outline icon-clipboard-document" aria-hidden="true"></span>
+                Program Directory
+            </button>
+            <button class="app-nav__item" type="button" data-panel="colleges">
+                <span class="heroicon-url heroicon-url-outline icon-building-library" aria-hidden="true"></span>
+                College Directory
+            </button>
+        </div>
     </nav>
 
     <!-- Toast -->
     <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <main class="container py-4 app-content">
-      <div class="card shadow-sm app-card">
-        <div class="card-body">
-          <section class="directory-panel is-active" data-panel="students">
-            <header class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="heroicon-url heroicon-url-outline icon-academic-cap heroicon--lg text-primary" aria-hidden="true"></span>
-                  <h1 class="h3 mb-0" id="test">Student Directory</h1>
-                </div>
-                <!--<p class="text-muted small mb-0 mt-1">Manage student records with a clean, searchable table.</p>-->
-              </div>
-              <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-student">
-                <span class="heroicon-url heroicon-url-outline icon-user-plus" aria-hidden="true"></span>
-                Add student
-              </button>
-            </header>
-            <div class="table-responsive">
-              <table id="studentsTable" class="table table-striped table-hover align-middle w-100">
-                <thead class="table-light">
-                  <tr>
-                    <th>ID</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Program Code</th>
-                    <th>Year</th>
-                    <th>Gender</th>
-                    <th class="text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </section>
-          <section class="directory-panel" data-panel="programs">
-            <header class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="heroicon-url heroicon-url-outline icon-clipboard-document heroicon--lg text-primary" aria-hidden="true"></span>
-                  <h1 class="h3 mb-0">Program Directory</h1>
-                </div>
-              </div>
-              <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-program">
-                <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
-                Add program
-              </button>
-            </header>
+        <div class="card shadow-sm app-card">
+            <div class="card-body">
+                <section class="directory-panel is-active" data-panel="students">
+                    <header class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="heroicon-url heroicon-url-outline icon-academic-cap heroicon--lg text-primary" aria-hidden="true"></span>
+                                <h1 class="h3 mb-0" id="test">Student Directory</h1>
+                            </div>
+                            <!--<p class="text-muted small mb-0 mt-1">Manage student records with a clean, searchable table.</p>-->
+                        </div>
+                        <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-student">
+                            <span class="heroicon-url heroicon-url-outline icon-user-plus" aria-hidden="true"></span>
+                            Add student
+                        </button>
+                    </header>
+                    <div class="table-responsive">
+                        <table id="studentsTable" class="table table-striped table-hover align-middle w-100">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Program Code</th>
+                                    <th>Year</th>
+                                    <th>Gender</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="directory-panel" data-panel="programs">
+                    <header class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="heroicon-url heroicon-url-outline icon-clipboard-document heroicon--lg text-primary" aria-hidden="true"></span>
+                                <h1 class="h3 mb-0">Program Directory</h1>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-program">
+                            <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
+                            Add program
+                        </button>
+                    </header>
 
-            <div class="table-responsive">
-              <table id="programsTable" class="table table-striped table-hover align-middle w-100">
-                <thead class="table-light">
-                  <tr>
-                    <th>Program Code</th>
-                    <th>Program Name</th>
-                    <th>College Code</th>
-                    <th class="text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </section>
+                    <div class="table-responsive">
+                        <table id="programsTable" class="table table-striped table-hover align-middle w-100">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Program Code</th>
+                                    <th>Program Name</th>
+                                    <th>College Code</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
 
-          <section class="directory-panel" data-panel="colleges">
-            <header class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="heroicon-url heroicon-url-outline icon-building-library heroicon--lg text-primary" aria-hidden="true"></span>
-                  <h1 class="h3 mb-0">College Directory</h1>
-                </div>
-              </div>
-              <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-college">
-                <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
-                Add college
-              </button>
-            </header>
+                <section class="directory-panel" data-panel="colleges">
+                    <header class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="heroicon-url heroicon-url-outline icon-building-library heroicon--lg text-primary" aria-hidden="true"></span>
+                                <h1 class="h3 mb-0">College Directory</h1>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-college">
+                            <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
+                            Add college
+                        </button>
+                    </header>
 
-            <div class="table-responsive">
-              <table id="collegesTable" class="table table-striped table-hover align-middle w-100">
-                <thead class="table-light">
-                  <tr>
-                    <th>College Code</th>
-                    <th>College Name</th>
-                    <th class="text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+                    <div class="table-responsive">
+                        <table id="collegesTable" class="table table-striped table-hover align-middle w-100">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>College Code</th>
+                                    <th>College Name</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
-          </section>
         </div>
-      </div>
     </main>
 
     <!-- Neutralino -->
@@ -144,11 +144,11 @@
     <script src="/js/bootstrap/bootstrap.js"></script>
     <script src="/js/moment/moment.js"></script>
     <script src="/js/datatables/datatables.js"></script>
-     
+
     <script src="/js/core/students.js"></script>
     <script src="/js/core/programs.js"></script>
     <script src="/js/core/colleges.js"></script>
     <script src="/js/core/csv.js"></script>
     <script src="/js/main.js"></script>
-  </body>
+</body>
 </html>
