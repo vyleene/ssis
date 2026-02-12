@@ -20,3 +20,13 @@ async function reloadStudentTable() {
     await loadCsvToTable(csvConfigs[2]);
     refreshDataTable('collegesTable');
 }
+
+function populateCollegeOptions(records) {
+    const $select = $('#program-college');
+    const codes = Array.from(new Set(records.map(([code]) => code))).sort();
+    collegeOptionsTemplate = [$('<option>').attr({ value: '', selected: true, disabled: true }).text('Select college code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
+
+    if(!$select.length) return;
+
+    $select.empty().append(collegeOptionsTemplate.map((option) => option.clone()));
+}

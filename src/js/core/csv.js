@@ -24,6 +24,7 @@ const csvConfigs = [
         headers: ['Code', 'Name'],
         columns: 2,
         rowMapper: ([code, name]) => createCollegeRecord(code, name),
+        populateOptions: (records) => populateCollegeOptions(records),
     }
 ];
 
