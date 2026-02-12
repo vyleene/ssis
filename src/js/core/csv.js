@@ -10,7 +10,7 @@ const csvConfigs = [
     },
     {
         tableId: 'programsTable',
-        csvPath: 'csv/programs.js',
+        csvPath: 'csv/programs.csv',
         headerLine: 'Code,Name,College',
         headers: ['Code', 'Name', 'College'],
         columns: 3,
@@ -18,7 +18,7 @@ const csvConfigs = [
     },
     {
         tableId: 'collegesTable',
-        csvPath: 'csv/colleges.js',
+        csvPath: 'csv/colleges.csv',
         headerLine: 'Code,Name',
         headers: ['Code', 'Name'],
         columns: 2,
