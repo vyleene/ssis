@@ -14,6 +14,7 @@ const csvConfigs = [
         headerLine: 'Code,Name,College',
         headers: ['Code', 'Name', 'College'],
         columns: 3,
+        rowMapper: ([code, name, college]) => createProgramRecord(code, name, college),
     },
     {
         tableId: 'collegesTable',
@@ -21,6 +22,7 @@ const csvConfigs = [
         headerLine: 'Code,Name',
         headers: ['Code', 'Name'],
         columns: 2,
+        rowMapper: ([code, name]) => createCollegeRecord(code, name),
     }
 ];
 
