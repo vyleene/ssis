@@ -1,7 +1,3 @@
-$(document).ready(async () => {
-    initTitleBar();
-});
-
 function initTitleBar() {
     const $titleBar = $('#app-titlebar');
     const $minimizeBtn = $('#btn-minimize');
@@ -33,5 +29,45 @@ function initDirectoryNav() {
         if(typeof $ !== 'undefined' && $.fn.DataTable) $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust().responsive.recalc();
     });
 }
+
+function initDataTable(tableId) {
+    if(typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') return;
+
+    const $table = $(`#${tableId}`);
+    if(!$table.length) return;
+
+    if($.fn.DataTable.isDataTable($table)) $table.DataTable().destroy();
+
+    $table.DataTable({
+        responsive: true,
+        fixedHeader: true,
+        paging: true,
+        lengthChange: false,
+    });
+}
+
+function refreshDataTable(tableId) {
+    if(typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') return;
+
+    const $table = $(`#${tableId}`);
+    if(!$table.length) return;
+
+    if($.fn.DataTable.isDataTable($table)) {
+        const rows = $table.find('tbody tr').toArray();
+        const dataTable = $table.DataTable();
+        dataTable.clear();
+        dataTable.rows.add(rows).draw(false);
+    } else {
+        initDataTable(tableId);
+    }
+}
+
+$(document).ready(async () => {
+    await Promise.all(csvConfigs.map(config => loadCsvToTable(config)));
+    csvConfigs.forEach(config => initDataTable(config.tableId));
+    
+    initTitleBar();
+    initDirectoryNav();
+});
 
 Neutralino.init();
