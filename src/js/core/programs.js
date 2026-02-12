@@ -16,12 +16,12 @@ const createProgramRecord = (code, name, college) => {
     return $row.prop('outerHTML');
 };
 
-let programRecordsCache = [];
-
-async function reloadStudentTable() {
+async function reloadProgramTable() {
     await loadCsvToTable(csvConfigs[1]);
     refreshDataTable('programsTable');
 }
+
+let programRecordsCache = [];
 
 function populateProgramOptions(records = programRecordsCache) {
     if(Array.isArray(records) && records.length) {
@@ -37,3 +37,61 @@ function populateProgramOptions(records = programRecordsCache) {
 
     $select.empty().append(programOptionsTemplate.map((option) => option.clone()));
 }
+
+function openProgramModal(mode, data = {}) {
+    const $modal = $('#programModal');
+    if(!$modal.length) return;
+
+    const $form = $('#program-form');
+    const $title = $('#programModalLabel');
+    const $submit = $('#program-submit');
+
+    const isEdit = mode === 'edit';
+    $form.attr('data-mode', mode);
+    $title.text(isEdit ? 'Edit Program' : 'Add Program');
+    $submit.text(isEdit ? 'Save Changes' : 'Add Program');
+
+    $('#program-code').val(data.code || '').attr('placeholder', data.code || '');
+    $('#program-name').val(data.name || '').attr('placeholder', data.name || '');
+    
+    populateCollegeOptions();
+
+    const $collegeSelect = $('#program-college');
+    if(data.college && !$collegeSelect.find(`option[value="${data.college}"]`).length) {
+        $collegeSelect.append($('<option>').val(data.college).text(data.college));
+    }
+    $collegeSelect.val(data.college || '');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+}
+
+function openDeleteProgramModal(programId) {
+    const $modal = $('#deleteProgramModal');
+    if(!$modal.length) return;
+
+    $('#delete-program-id').val(programId || '');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+}
+
+$(document).on('click', '#btn-add-program', () => openProgramModal('add'));
+
+$(document).on('click', '.edit-program', function() {
+    const $btn = $(this);
+    openProgramModal('edit', {
+        code: $btn.attr('data-id'),
+        name: $btn.attr('data-name'),
+        college: $btn.attr('data-college'),
+    });
+});
+
+$(document).on('click', '.delete-program', function() {
+    const $btn = $(this);
+    openDeleteProgramModal($btn.attr('data-id'));
+});
