@@ -1,8 +1,14 @@
 const createStudentRecord = (id, f_name, l_name, code, year, gender) => {
     const $row = $('<tr>');
-    const $actions = $('<td>').addClass('text-center');
-    const $edit = $('<button>').addClass('btn btn-sm btn-outline-primary me-1 edit-student').attr({ 'data-id': id, 'data-fn': f_name, 'data-ln': l_name, 'data-cd': code, 'data-yr': year, 'data-gr': gender }).text('Edit');
-    const $del = $('<button>').addClass('btn btn-sm btn-outline-danger delete-student').attr({ 'data-id': id }).text('Delete');
+    const $actions = $('<td>').addClass('text-center actions-col');
+    const $edit = $('<button>')
+        .addClass('btn btn-sm btn-outline-primary me-1 edit-student')
+        .attr({ 'data-id': id, 'data-fn': f_name, 'data-ln': l_name, 'data-cd': code, 'data-yr': year, 'data-gr': gender, 'aria-label': 'Edit student', title: 'Edit' })
+        .html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
+    const $del = $('<button>')
+        .addClass('btn btn-sm btn-outline-danger delete-student')
+        .attr({ 'data-id': id, 'aria-label': 'Delete student', title: 'Delete' })
+        .html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
 
     $actions.append($edit, $del);
     $row.append($('<td>').text(id), $('<td>').text(f_name), $('<td>').text(l_name), $('<td>').text(code), $('<td>').text(year), $('<td>').text(gender), $actions);
@@ -98,9 +104,9 @@ function openDeleteStudentModal(studentId) {
     }
 }
 
-$(document).on('click', '#btn-add-student', () => openStudentModal('add'));
+$('#btn-add-student').on('click', () => openStudentModal('add'));
 
-$(document).on('click', '.edit-student', function() {
+$('.edit-student').on('click', function() {
     const $btn = $(this);
     openStudentModal('edit', {
         id: $btn.attr('data-id'),
@@ -112,7 +118,7 @@ $(document).on('click', '.edit-student', function() {
     });
 });
 
-$(document).on('click', '.delete-student', function() {
+$('.delete-student').on('click', function() {
     const $btn = $(this);
     openDeleteStudentModal($btn.attr('data-id'));
 });

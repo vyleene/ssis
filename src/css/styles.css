@@ -256,3 +256,8 @@ body {
 .page-link:focus {
     box-shadow: none;
 }
+
+.actions-col {
+    width: 112px;
+    min-width: 112px;
+}

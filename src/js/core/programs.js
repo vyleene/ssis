@@ -1,8 +1,14 @@
 const createProgramRecord = (code, name, college) => {
     const $row = $('<tr>').attr('id', code);
-    const $actions = $('<td>').addClass('text-center');
-    const $edit = $('<button>').addClass('btn btn-sm btn-outline-primary me-1 edit-program').attr({ 'data-id': code, 'data-name': name, 'data-college': college }).text('Edit');
-    const $del = $('<button>').addClass('btn btn-sm btn-outline-danger delete-program').attr({ 'data-id': code }).text('Delete');
+    const $actions = $('<td>').addClass('text-center actions-col');
+    const $edit = $('<button>')
+        .addClass('btn btn-sm btn-outline-primary me-1 edit-program')
+        .attr({ 'data-id': code, 'data-name': name, 'data-college': college, 'aria-label': 'Edit program', title: 'Edit' })
+        .html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
+    const $del = $('<button>')
+        .addClass('btn btn-sm btn-outline-danger delete-program')
+        .attr({ 'data-id': code, 'aria-label': 'Delete program', title: 'Delete' })
+        .html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
 
     $actions.append($edit, $del);
     $row.append($('<td>').text(code), $('<td>').text(name), $('<td>').text(college), $actions);
