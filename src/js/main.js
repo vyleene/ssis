@@ -82,11 +82,11 @@ function showToast(message, variant) {
             default:
                 return 'icon-bell';
         }
-    }
+    };
 
     const $toastEl = $('<div>').addClass(`toast align-items-center text-bg-${variant} border-0`).attr({ role: 'alert', 'aria-live': 'assertive', 'aria-atomic': 'true' });
     const $toastRow = $('<div>').addClass('d-flex');
-    const $toastBody = $('<div>').addClass('toast-body d-flex align-items-center gap-2').html(`<span class="heroicon-url heroicon-url-outline ${iconClass}" aria-hidden="true"></span><span>${message}</span>`);
+    const $toastBody = $('<div>').addClass('toast-body d-flex align-items-center gap-2').html(`<span class="heroicon-url heroicon-url-outline ${iconClass(variant)}" aria-hidden="true"></span><span>${message}</span>`);
     const $toastClose = $('<button>').addClass('btn-close btn-close-white me-2 m-auto').attr({ type: 'button', 'data-bs-dismiss': 'toast', 'aria-label': 'Close' });
     const $progress = $('<div>').addClass('toast-progress progress').attr('role', 'presentation');
     const $progressBar = $('<div>').addClass('progress-bar toast-progress__bar').attr('role', 'progressbar');
