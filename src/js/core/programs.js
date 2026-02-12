@@ -10,7 +10,24 @@ const createProgramRecord = (code, name, college) => {
     return $row.prop('outerHTML');
 };
 
+let programRecordsCache = [];
+
 async function reloadStudentTable() {
     await loadCsvToTable(csvConfigs[1]);
     refreshDataTable('programsTable');
+}
+
+function populateProgramOptions(records = programRecordsCache) {
+    if(Array.isArray(records) && records.length) {
+        programRecordsCache = records;
+    }
+
+    const sourceRecords = Array.isArray(records) ? records : programRecordsCache;
+    const $select = $('#student-program');
+    const codes = Array.from(new Set(sourceRecords.map(([code]) => code))).sort();
+    const programOptionsTemplate = [$('<option>').attr({ value: '', selected: true, disabled: true }).text('Select program code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
+
+    if(!$select.length) return;
+
+    $select.empty().append(programOptionsTemplate.map((option) => option.clone()));
 }
