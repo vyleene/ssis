@@ -163,7 +163,7 @@
                                 </div>
                                 <div class="col-1 text-center">-</div>
                                 <div class="col-7 col-md-7">
-                                    <input class="form-control" id="student-id-number" name="studentIdNumber" type="text" inputmode="numeric" required />
+                                    <input class="form-control" id="student-id-number" name="studentIdNumber" type="text" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="NNNN" required />
                                 </div>
                             </div>
                         </div>
@@ -174,7 +174,7 @@
                                     <span class="input-group-text">
                                         <span class="heroicon-url heroicon-url-outline icon-user" aria-hidden="true"></span>
                                     </span>
-                                    <input class="form-control" id="student-first-name" name="firstName" type="text" required />
+                                    <input class="form-control" id="student-first-name" name="firstName" type="text" maxlength="16" pattern="[A-Za-z ]+" placeholder="First name" required />
                                 </div>
                             </div>
                             <div class="col-12 col-md-6">
@@ -183,7 +183,7 @@
                                     <span class="input-group-text">
                                         <span class="heroicon-url heroicon-url-outline icon-user" aria-hidden="true"></span>
                                     </span>
-                                    <input class="form-control" id="student-last-name" name="lastName" type="text" required />
+                                    <input class="form-control" id="student-last-name" name="lastName" type="text" maxlength="16" pattern="[A-Za-z ]+" placeholder="Last name" required />
                                 </div>
                             </div>
                         </div>
@@ -221,7 +221,7 @@
                                         <span class="heroicon-url heroicon-url-outline icon-users" aria-hidden="true"></span>
                                     </span>
                                     <select class="form-select" id="student-gender" name="gender" required>
-                                        <option value="" selected disabled>Select</option>
+                                        <option value="" selected disabled>Select gender</option>
                                         <option value="M">M</option>
                                         <option value="F">F</option>
                                     </select>
