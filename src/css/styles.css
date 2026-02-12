@@ -75,6 +75,13 @@ body {
     background: rgba(248, 113, 113, 0.2);
 }
 
+.app-nav {
+    background: rgba(15, 23, 42, 0.08);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
 .app-nav__container {
     max-width: 1200px;
     margin: 0 auto;
@@ -156,4 +163,62 @@ body {
 
 .card-body {
     padding: 1.25rem;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.72rem;
+    color: #475569;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(99, 102, 241, 0.06);
+}
+
+
+.btn-primary {
+    border: none;
+    background: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
+    box-shadow: 0 12px 20px rgba(99, 102, 241, 0.28);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+    box-shadow: 0 16px 28px rgba(79, 70, 229, 0.3);
+}
+
+.btn-outline-primary {
+    border-color: rgba(99, 102, 241, 0.4);
+    color: #4f46e5;
+}
+
+.btn-outline-primary:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4338ca;
+}
+
+.btn-outline-danger {
+    border-color: rgba(248, 113, 113, 0.5);
+}
+
+.btn-outline-danger:hover {
+    background: rgba(248, 113, 113, 0.12);
+}
+
+.heroicon-url {
+    color: currentColor;
+}
+
+.page-link:focus {
+    box-shadow: none;
 }
