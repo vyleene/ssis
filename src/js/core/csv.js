@@ -29,7 +29,7 @@ const csvConfigs = [
 ];
 
 async function ensureCsvFile(relativePath, headerLine) {
-    if(csvPathCache.has(relativePath)) return csvPathCache.get(headerLine);
+    if(csvPathCache.has(relativePath)) return csvPathCache.get(relativePath);
 
     const absolutePath = await Neutralino.filesystem.getAbsolutePath(relativePath);
     const normalizedPath = await Neutralino.filesystem.getNormalizedPath(absolutePath);
@@ -117,4 +117,44 @@ async function loadCsvToTable(config) {
         const message = error?.message ? `Failed to load <b>${config.tableId}</b>: ${error.message}` : `Failed to load <b>${config.tableId}</b>.`;
         showToast(message, 'danger');
     }
+}
+
+
+async function getCsvHeaderAndRows(csvPath, headerLine) {
+    const normalizedPath = await ensureCsvFile(csvPath, headerLine);
+    const csvText = await Neutralino.filesystem.readFile(normalizedPath);
+    const lines = csvText.split(/\r?\n/).filter(Boolean);
+    const header = lines[0] || headerLine;
+    const rows = lines.slice(1);
+
+    return { normalizedPath, header, rows };
+}
+
+async function writeCsvRecord({ csvPath, headerLine, key, keyIndex, rowValues, mode }) {
+    const { normalizedPath, header, rows } = await getCsvHeaderAndRows(csvPath, headerLine);
+    const rowText = rowValues.join(',');
+    const matchIndex = rows.findIndex((line) => (line.split(',')[keyIndex] || '') === key);
+
+    if(mode === 'edit') {
+        if(matchIndex === -1) return { status: 'missing' };
+        rows[matchIndex] = rowText;
+        await Neutralino.filesystem.writeFile(normalizedPath, [header, ...rows].join('\n') + '\n');
+        return { status: 'updated' };
+    }
+
+    if(matchIndex !== -1) return { status: 'duplicate' };
+
+    rows.push(rowText);
+    await Neutralino.filesystem.writeFile(normalizedPath, [header, ...rows].join('\n') + '\n');
+    return { status: 'added' };
+}
+
+async function deleteCsvRecord({ csvPath, headerLine, key, keyIndex }) {
+    const { normalizedPath, header, rows } = await getCsvHeaderAndRows(csvPath, headerLine);
+    const remaining = rows.filter((line) => (line.split(',')[keyIndex] || '') !== key);
+
+    if(remaining.length === rows.length) return { status: 'missing' };
+
+    await Neutralino.filesystem.writeFile(normalizedPath, [header, ...remaining].join('\n') + '\n');
+    return { status: 'deleted' };
 }
