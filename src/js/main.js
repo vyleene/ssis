@@ -1,3 +1,5 @@
+const DOM = { toastContainer: null };
+
 function initTitleBar() {
     const $titleBar = $('#app-titlebar');
     const $minimizeBtn = $('#btn-minimize');
@@ -59,6 +61,38 @@ function refreshDataTable(tableId) {
         dataTable.rows.add(rows).draw(false);
     } else {
         initDataTable(tableId);
+    }
+}
+
+function showToast(message, variant) {
+    if(!DOM.toastContainer) DOM.toastContainer = $('.toast-container');
+    if(!DOM.toastContainer.length) return;
+
+    const toastDuration = 3000;
+
+    const $toastEl = $('<div>').addClass(`toast align-items-center text-bg-${variant} border-0`).attr({ role: 'alert', 'aria-live': 'assertive', 'aria-atomic': 'true' });
+    const $toastRow = $('<div>').addClass('d-flex');
+    const $toastBody = $('<div>').addClass('toast-body').html(message);
+    const $toastClose = $('<button>').addClass('btn-close btn-close-white me-2 m-auto').attr({ type: 'button', 'data-bs-dismiss': 'toast', 'aria-label': 'Close' });
+    const $progress = $('<div>').addClass('toast-progress progress').attr('role', 'presentation');
+    const $progressBar = $('<div>').addClass('progress-bar toast-progress__bar').attr('role', 'progressbar');
+
+    $toastRow.append($toastBody, $toastClose);
+    $progress.append($progressBar);
+    $toastEl.append($toastRow, $progress);
+
+    DOM.toastContainer.append($toastEl);
+
+    $progressBar.css('animation-duration', `${toastDuration}ms`);
+
+    const ToastClass = window.bootstrap?.Toast;
+    if(ToastClass) {
+        const toast = new ToastClass($toastEl[0], { delay: toastDuration, autohide: true });
+        $toastEl.on('hidden.bs.toast', () => $toastEl.remove());
+        toast.show();
+    } else {
+        $toastEl.addClass('show');
+        setTimeout(() => $toastEl.remove(), toastDuration);
     }
 }
 
