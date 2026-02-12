@@ -47,7 +47,7 @@
               <div>
                 <div class="d-flex align-items-center gap-2">
                   <span class="heroicon-url heroicon-url-outline icon-academic-cap heroicon--lg text-primary" aria-hidden="true"></span>
-                  <h1 class="h3 mb-0">Student Directory</h1>
+                  <h1 class="h3 mb-0" id="test">Student Directory</h1>
                 </div>
                 <!--<p class="text-muted small mb-0 mt-1">Manage student records with a clean, searchable table.</p>-->
               </div>
@@ -56,6 +56,22 @@
                 Add student
               </button>
             </header>
+            <div class="table-responsive">
+              <table id="studentsTable" class="table table-striped table-hover align-middle w-100">
+                <thead class="table-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Program Code</th>
+                    <th>Year</th>
+                    <th>Gender</th>
+                    <th class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </section>
         </div>
       </div>
@@ -65,11 +81,13 @@
     <script src="/js/neutralino/neutralino.js"></script>
 
     <!-- Plugins -->
-     <script src="/js/jquery/jquery.js"></script>
-     <script src="/js/bootstrap/bootstrap.js"></script>
-     <script src="/js/moment/moment.js"></script>
-     <script src="/js/datatables/datatables.js"></script>
+    <script src="/js/jquery/jquery.js"></script>
+    <script src="/js/bootstrap/bootstrap.js"></script>
+    <script src="/js/moment/moment.js"></script>
+    <script src="/js/datatables/datatables.js"></script>
      
+    <script src="/js/core/students.js"></script>
+    <script src="/js/core/csv.js"></script>
     <script src="/js/main.js"></script>
   </body>
 </html>
