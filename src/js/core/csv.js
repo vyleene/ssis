@@ -107,10 +107,11 @@ async function loadCsvToTable(config) {
 
         const { records, empty } = parseCsvRecords(csvText, config.headers, config.columns);
 
-        // if (empty) ...
+        if(empty) showToast(`No records found for <b>${config.tableId}</b>.`, 'warning');
 
         $tbody.html(records.map(config.rowMapper).join(''));
     } catch (error) {
-        // error handling
+        const message = error?.message ? `Failed to load <b>${config.tableId}</b>: ${error.message}` : `Failed to load <b>${config.tableId}</b>.`;
+        showToast(message, 'danger');
     }
 }
