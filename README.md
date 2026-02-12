@@ -1,15 +1,49 @@
-# neutralinojs-minimal
+# Simple Student Information System 🎓
 
-The default template for a Neutralinojs app. It's possible to use your favorite frontend framework by using [these steps](https://neutralino.js.org/docs/getting-started/using-frontend-libraries).
+Manage students, programs, and colleges in a clean desktop UI with CSV-backed storage.
 
-## Contributors
+## Overview ✨
 
-[![Contributors](https://contrib.rocks/image?repo=neutralinojs/neutralinojs-minimal)](https://github.com/neutralinojs/neutralinojs-minimal/graphs/contributors)
+Simple Student Information System is a lightweight app built with Neutralino, Bootstrap, and DataTables. It provides three directories (Students, Programs, and Colleges) and supports full CRUD operations using local CSV files.
 
-## License
+## Features ✅
 
-[MIT](LICENSE)
+- Students, Programs, and Colleges tables
+- Create, read, update, and delete records
+- CSV-backed data storage
+- Fast, searchable tables with DataTables
+- Lightweight Neutralino desktop runtime
 
-## Icon credits
+## Data Model 🧾
 
-- `trayIcon.png` - Made by [Freepik](https://www.freepik.com) and downloaded from [Flaticon](https://www.flaticon.com)
+- Students: ID, First Name, Last Name, Program Code, Year, Gender
+- Programs: Code, Name, College
+- Colleges: Code, Name
+
+## Tech Stack 🧰
+
+- Neutralino
+- Bootstrap
+- jQuery
+- DataTables
+
+## Project Structure 🗂️
+
+```
+src/
+	index.html
+	css/
+	js/
+		core/
+			csv.js
+			students.js
+			programs.js
+			colleges.js
+csv/
+	students.csv
+```
+
+## Notes 📌
+
+- CSV headers are validated on load to prevent schema mismatches.
+- Empty datasets are handled gracefully in the UI.
