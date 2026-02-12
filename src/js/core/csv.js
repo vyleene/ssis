@@ -7,6 +7,20 @@ const csvConfigs = [
         headers: ['ID', 'First Name', 'Last Name', 'Program Code', 'Year', 'Gender'],
         columns: 6,
         rowMapper: ([id, f_name, l_name, code, year, gender]) => createStudentRecord(id, f_name, l_name, code, year, gender),
+    },
+    {
+        tableId: 'programsTable',
+        csvPath: 'csv/programs.js',
+        headerLine: 'Code,Name,College',
+        headers: ['Code', 'Name', 'College'],
+        columns: 3,
+    },
+    {
+        tableId: 'collegesTable',
+        csvPath: 'csv/colleges.js',
+        headerLine: 'Code,Name',
+        headers: ['Code', 'Name'],
+        columns: 2,
     }
 ];
 
