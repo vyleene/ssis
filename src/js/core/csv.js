@@ -15,6 +15,7 @@ const csvConfigs = [
         headers: ['Code', 'Name', 'College'],
         columns: 3,
         rowMapper: ([code, name, college]) => createProgramRecord(code, name, college),
+        populateOptions: (records) => populateProgramOptions(records),
     },
     {
         tableId: 'collegesTable',
@@ -108,6 +109,7 @@ async function loadCsvToTable(config) {
         const { records, empty } = parseCsvRecords(csvText, config.headers, config.columns);
 
         if(empty) showToast(`No records found for <b>${config.tableId}</b>.`, 'warning');
+        if(config.populateOptions) config.populateOptions(records);
 
         $tbody.html(records.map(config.rowMapper).join(''));
     } catch (error) {
