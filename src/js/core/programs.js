@@ -1,14 +1,8 @@
 const createProgramRecord = (code, name, college) => {
     const $row = $('<tr>').attr('id', code);
     const $actions = $('<td>').addClass('text-center actions-col');
-    const $edit = $('<button>')
-        .addClass('btn btn-sm btn-outline-primary me-1 edit-program')
-        .attr({ 'data-id': code, 'data-name': name, 'data-college': college, 'aria-label': 'Edit program', title: 'Edit' })
-        .html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
-    const $del = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger delete-program')
-        .attr({ 'data-id': code, 'aria-label': 'Delete program', title: 'Delete' })
-        .html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
+    const $edit = $('<button>').addClass('btn btn-sm btn-outline-primary me-1 edit-program').attr({ 'data-id': code, 'data-name': name, 'data-college': college, 'aria-label': 'Edit program', title: 'Edit' }).html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
+    const $del = $('<button>').addClass('btn btn-sm btn-outline-danger delete-program').attr({ 'data-id': code, 'aria-label': 'Delete program', title: 'Delete' }).html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
 
     $actions.append($edit, $del);
     $row.append($('<td>').text(code), $('<td>').text(name), $('<td>').text(college), $actions);
@@ -17,8 +11,15 @@ const createProgramRecord = (code, name, college) => {
 };
 
 async function reloadProgramTable() {
-    await loadCsvToTable(csvConfigs[1]);
-    refreshDataTable('programsTable');
+    const $shell = $('programsTable').closest('.table-shell');
+    $shell.addClass('is-loading');
+
+    try {
+        await loadCsvToTable(csvConfigs[1]);
+        refreshDataTable('programsTable');
+    } finally {
+        $shell.removeClass('is-loading');
+    }
 }
 
 let programRecordsCache = [];
@@ -80,6 +81,8 @@ function openDeleteProgramModal(programId) {
         ModalClass.getOrCreateInstance($modal[0]).show();
     }
 }
+
+$(document).on('click', '#btn-refresh-program', () => reloadProgramTable());
 
 $(document).on('click', '#btn-add-program', () => openProgramModal('add'));
 

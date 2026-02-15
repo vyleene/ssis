@@ -1,14 +1,8 @@
 const createCollegeRecord = (code, name) => {
     const $row = $('<tr>').attr('id', code);
     const $actions = $('<td>').addClass('text-center actions-col');
-    const $edit = $('<button>')
-        .addClass('btn btn-sm btn-outline-primary me-1 edit-college')
-        .attr({ 'data-id': code, 'data-name': name, 'aria-label': 'Edit college', title: 'Edit' })
-        .html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
-    const $del = $('<button>')
-        .addClass('btn btn-sm btn-outline-danger delete-college')
-        .attr({ 'data-id': code, 'aria-label': 'Delete college', title: 'Delete' })
-        .html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
+    const $edit = $('<button>').addClass('btn btn-sm btn-outline-primary me-1 edit-college').attr({ 'data-id': code, 'data-name': name, 'aria-label': 'Edit college', title: 'Edit' }).html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
+    const $del = $('<button>').addClass('btn btn-sm btn-outline-danger delete-college').attr({ 'data-id': code, 'aria-label': 'Delete college', title: 'Delete' }).html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
 
     $actions.append($edit, $del);
     $row.append($('<td>').text(code), $('<td>').text(name), $actions);
@@ -17,8 +11,15 @@ const createCollegeRecord = (code, name) => {
 };
 
 async function reloadCollegeTable() {
-    await loadCsvToTable(csvConfigs[2]);
-    refreshDataTable('collegesTable');
+    const $shell = $('collegesTable').closest('.table-shell');
+    $shell.addClass('is-loading');
+
+    try {
+        await loadCsvToTable(csvConfigs[2]);
+        refreshDataTable('collegesTable');
+    } finally {
+        $shell.removeClass('is-loading');
+    }
 }
 
 let collegeRecordsCache = [];
@@ -72,6 +73,8 @@ function openDeleteCollegeModal(collegeId) {
         ModalClass.getOrCreateInstance($modal[0]).show();
     }
 }
+
+$(document).on('click', '#btn-refresh-college', () => reloadCollegeTable());
 
 $(document).on('click', '#btn-add-college', () => openCollegeModal('add'));
 

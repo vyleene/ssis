@@ -107,27 +107,6 @@ $(document).ready(async () => {
     
     initTitleBar();
     initDirectoryNav();
-
-    const refreshConfigMap = new Map([
-        ['btn-refresh-student', { configIndex: 0, tableId: 'studentsTable' }],
-        ['btn-refresh-program', { configIndex: 1, tableId: 'programsTable' }],
-        ['btn-refresh-college', { configIndex: 2, tableId: 'collegesTable' }],
-    ]);
-
-    $(document).on('click', '#btn-refresh-student, #btn-refresh-program, #btn-refresh-college', async (event) => {
-        const targetId = event.currentTarget?.id;
-        const config = refreshConfigMap.get(targetId);
-        if(!config) return;
-
-        const $shell = $(`#${config.tableId}`).closest('.table-shell');
-        $shell.addClass('is-loading');
-        try {
-            await loadCsvToTable(csvConfigs[config.configIndex]);
-            refreshDataTable(config.tableId);
-        } finally {
-            $shell.removeClass('is-loading');
-        }
-    });
 });
 
 Neutralino.init();
