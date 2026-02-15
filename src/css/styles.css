@@ -262,10 +262,13 @@ body {
 
 .btn-outline-danger {
     border-color: rgba(248, 113, 113, 0.5);
+    color: #dc2626;
 }
 
-.btn-outline-danger:hover {
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
     background: rgba(248, 113, 113, 0.12);
+    color: #b91c1c;
 }
 
 .heroicon-url {
