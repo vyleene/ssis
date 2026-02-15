@@ -35,7 +35,8 @@ async function ensureCsvFile(relativePath, headerLine) {
     const normalizedPath = await Neutralino.filesystem.getNormalizedPath(absolutePath);
 
     try {
-        await Neutralino.filesystem.createDirectory(await Neutralino.filesystem.getPathParts(normalizedPath).parentPath);
+        const pathParts = await Neutralino.filesystem.getPathParts(normalizedPath);
+        await Neutralino.filesystem.createDirectory(pathParts.parentPath);
     } catch(_) {}
 
     
