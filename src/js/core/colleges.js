@@ -48,6 +48,7 @@ function openCollegeModal(mode, data = {}) {
 
     const isEdit = mode === 'edit';
     $form.attr('data-mode', mode);
+    $form.attr('data-id', data.code || '');
     $title.text(isEdit ? 'Edit College' : 'Add College');
     $submit.text(isEdit ? 'Save Changes' : 'Add College');
 
@@ -85,4 +86,84 @@ $(document).on('click', '.edit-college', function() {
 $(document).on('click', '.delete-college', function() {
     const $btn = $(this);
     openDeleteCollegeModal($btn.attr('data-id'));
+});
+
+$(document).on('submit', '#college-form', async function(event) {
+    event.preventDefault();
+
+    const $form = $(this);
+    const mode = $form.attr('data-mode') || 'add';
+    const originalId = $form.attr('data-id') || '';
+
+    const collegeCode = ($('#college-code').val() || '').trim();
+    const collegeName = ($('#college-name').val() || '').trim();
+
+    if(!collegeCode || !collegeName) {
+        showToast('Please complete all required fields.', 'warning');
+        return;
+    }
+
+    try {
+        const payload = {
+            csvPath: csvConfigs[2].csvPath,
+            headerLine: csvConfigs[2].headerLine,
+            key: mode === 'edit' ? originalId : collegeCode,
+            keyIndex: 0,
+            rowValues: [collegeCode, collegeName],
+            mode,
+        };
+
+        const result = await writeCsvRecord(payload);
+        if(result.status === 'duplicate') {
+            showToast('College code already exists.', 'danger');
+            return;
+        }
+
+        if(result.status === 'missing') {
+            showToast('College record not found.', 'danger');
+            return;
+        }
+
+        await reloadCollegeTable();
+
+        const modalEl = document.getElementById('collegeModal');
+        const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
+        modalInstance?.hide();
+        const successMessage = mode === 'edit'
+            ? `College <b>${collegeCode}</b> updated.`
+            : `College <b>${collegeCode}</b> added.`;
+        showToast(successMessage, 'success');
+    } catch (error) {
+        const message = error?.message ? `Failed to save college: ${error.message}` : 'Failed to save college.';
+        showToast(message, 'danger');
+    }
+});
+
+$(document).on('click', '#confirm-delete-college', async function() {
+    const collegeId = $('#delete-college-id').val() || '';
+    if(!collegeId) return;
+
+    try {
+        const result = await deleteCsvRecord({
+            csvPath: csvConfigs[2].csvPath,
+            headerLine: csvConfigs[2].headerLine,
+            key: collegeId,
+            keyIndex: 0,
+        });
+
+        if(result.status === 'missing') {
+            showToast('College record not found.', 'danger');
+            return;
+        }
+
+        await reloadCollegeTable();
+
+        const modalEl = document.getElementById('deleteCollegeModal');
+        const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
+        modalInstance?.hide();
+        showToast(`College <b>${collegeId}</b> deleted.`, 'success');
+    } catch (error) {
+        const message = error?.message ? `Failed to delete college: ${error.message}` : 'Failed to delete college.';
+        showToast(message, 'danger');
+    }
 });
