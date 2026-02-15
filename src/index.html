@@ -55,12 +55,22 @@
                             </div>
                             <!--<p class="text-muted small mb-0 mt-1">Manage student records with a clean, searchable table.</p>-->
                         </div>
-                        <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-student">
-                            <span class="heroicon-url heroicon-url-outline icon-user-plus" aria-hidden="true"></span>
-                            Add student
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-student" type="button">
+                                <span class="heroicon-url heroicon-url-outline icon-user-plus" aria-hidden="true"></span>
+                                Add student
+                            </button>
+                            <button class="btn btn-secondary d-inline-flex align-items-center" id="btn-refresh-student" type="button" aria-label="Refresh students">
+                                <span class="heroicon-url heroicon-url-outline icon-arrow-path" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </header>
-                    <div class="table-responsive">
+                    <div class="table-responsive table-shell">
+                        <div class="table-overlay" aria-hidden="true">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
                         <table id="studentsTable" class="table table-striped table-hover align-middle w-100">
                             <thead class="table-light">
                                 <tr>
@@ -85,13 +95,23 @@
                                 <h1 class="h3 mb-0">Program Directory</h1>
                             </div>
                         </div>
-                        <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-program">
-                            <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
-                            Add program
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-program" type="button">
+                                <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
+                                Add program
+                            </button>
+                            <button class="btn btn-secondary d-inline-flex align-items-center" id="btn-refresh-program" type="button" aria-label="Refresh programs">
+                                <span class="heroicon-url heroicon-url-outline icon-arrow-path" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </header>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive table-shell">
+                        <div class="table-overlay" aria-hidden="true">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
                         <table id="programsTable" class="table table-striped table-hover align-middle w-100">
                             <thead class="table-light">
                                 <tr>
@@ -114,13 +134,23 @@
                                 <h1 class="h3 mb-0">College Directory</h1>
                             </div>
                         </div>
-                        <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-college">
-                            <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
-                            Add college
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-college" type="button">
+                                <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
+                                Add college
+                            </button>
+                            <button class="btn btn-secondary d-inline-flex align-items-center" id="btn-refresh-college" type="button" aria-label="Refresh colleges">
+                                <span class="heroicon-url heroicon-url-outline icon-arrow-path" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </header>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive table-shell">
+                        <div class="table-overlay" aria-hidden="true">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
                         <table id="collegesTable" class="table table-striped table-hover align-middle w-100">
                             <thead class="table-light">
                                 <tr>
