@@ -1,5 +1,3 @@
-const DOM = { toastContainer: null };
-
 function initTitleBar() {
     const $titleBar = $('#app-titlebar');
     const $minimizeBtn = $('#btn-minimize');
@@ -65,28 +63,21 @@ function refreshDataTable(tableId) {
 }
 
 function showToast(message, variant) {
-    if(!DOM.toastContainer) DOM.toastContainer = $('.toast-container');
-    if(!DOM.toastContainer.length) return;
+    const $toastContainer = $('.toast-container');
+    if(!$toastContainer.length) return;
 
     const toastDuration = 3000;
-    const iconClass = (variant) => {
-        switch(variant) {
-            case 'success':
-                return 'icon-check-circle';
-            case 'warning':
-                return 'icon-exclamation-triangle';
-            case 'danger':
-                return 'icon-x-circle';
-            case 'info':
-                return 'icon-information-circle';
-            default:
-                return 'icon-bell';
-        }
+    const toastIconByVariant = {
+        success: 'icon-check-circle',
+        warning: 'icon-exclamation-triangle',
+        danger: 'icon-x-circle',
+        info: 'icon-information-circle',
     };
+    const iconClass = toastIconByVariant[variant] || 'icon-bell';
 
     const $toastEl = $('<div>').addClass(`toast align-items-center text-bg-${variant} border-0`).attr({ role: 'alert', 'aria-live': 'assertive', 'aria-atomic': 'true' });
     const $toastRow = $('<div>').addClass('d-flex');
-    const $toastBody = $('<div>').addClass('toast-body d-flex align-items-center gap-2').html(`<span class="heroicon-url heroicon-url-outline ${iconClass(variant)}" aria-hidden="true"></span><span>${message}</span>`);
+    const $toastBody = $('<div>').addClass('toast-body d-flex align-items-center gap-2').html(`<span class="heroicon-url heroicon-url-outline ${iconClass}" aria-hidden="true"></span><span>${message}</span>`);
     const $toastClose = $('<button>').addClass('btn-close btn-close-white me-2 m-auto').attr({ type: 'button', 'data-bs-dismiss': 'toast', 'aria-label': 'Close' });
     const $progress = $('<div>').addClass('toast-progress progress').attr('role', 'presentation');
     const $progressBar = $('<div>').addClass('progress-bar toast-progress__bar').attr('role', 'progressbar');
@@ -95,7 +86,7 @@ function showToast(message, variant) {
     $progress.append($progressBar);
     $toastEl.append($toastRow, $progress);
 
-    DOM.toastContainer.append($toastEl);
+    $toastContainer.append($toastEl);
 
     $progressBar.css('animation-duration', `${toastDuration}ms`);
 
@@ -116,6 +107,27 @@ $(document).ready(async () => {
     
     initTitleBar();
     initDirectoryNav();
+
+    const refreshConfigMap = new Map([
+        ['btn-refresh-student', { configIndex: 0, tableId: 'studentsTable' }],
+        ['btn-refresh-program', { configIndex: 1, tableId: 'programsTable' }],
+        ['btn-refresh-college', { configIndex: 2, tableId: 'collegesTable' }],
+    ]);
+
+    $(document).on('click', '#btn-refresh-student, #btn-refresh-program, #btn-refresh-college', async (event) => {
+        const targetId = event.currentTarget?.id;
+        const config = refreshConfigMap.get(targetId);
+        if(!config) return;
+
+        const $shell = $(`#${config.tableId}`).closest('.table-shell');
+        $shell.addClass('is-loading');
+        try {
+            await loadCsvToTable(csvConfigs[config.configIndex]);
+            refreshDataTable(config.tableId);
+        } finally {
+            $shell.removeClass('is-loading');
+        }
+    });
 });
 
 Neutralino.init();
