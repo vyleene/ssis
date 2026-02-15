@@ -11,7 +11,7 @@ const createStudentRecord = (id, f_name, l_name, code, year, gender) => {
 };
 
 async function reloadStudentTable() {
-    const $shell = $('studentsTable').closest('.table-shell');
+    const $shell = $('#studentsTable').closest('.table-shell');
     $shell.addClass('is-loading');
 
     try {

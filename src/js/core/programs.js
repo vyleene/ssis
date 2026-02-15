@@ -11,7 +11,7 @@ const createProgramRecord = (code, name, college) => {
 };
 
 async function reloadProgramTable() {
-    const $shell = $('programsTable').closest('.table-shell');
+    const $shell = $('#programsTable').closest('.table-shell');
     $shell.addClass('is-loading');
 
     try {

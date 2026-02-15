@@ -11,7 +11,7 @@ const createCollegeRecord = (code, name) => {
 };
 
 async function reloadCollegeTable() {
-    const $shell = $('collegesTable').closest('.table-shell');
+    const $shell = $('#collegesTable').closest('.table-shell');
     $shell.addClass('is-loading');
 
     try {
