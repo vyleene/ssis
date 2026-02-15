@@ -48,7 +48,7 @@
     "binaryName": "ssis",
     "resourcesPath": "/src/",
     "extensionsPath": "/ext/",
-    "clientLibrary": "/src/js/neutralino.js",
+    "clientLibrary": "/src/js/neutralino/neutralino.js",
     "binaryVersion": "6.5.0",
     "clientVersion": "6.5.0"
   }
