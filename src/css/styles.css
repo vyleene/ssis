@@ -203,6 +203,25 @@ body {
     margin-bottom: 0;
 }
 
+.table-shell {
+    position: relative;
+}
+
+.table-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.33);
+    backdrop-filter: blur(1px);
+    z-index: 10;
+}
+
+.table-shell.is-loading .table-overlay {
+    display: flex;
+}
+
 .table thead th {
     text-transform: uppercase;
     letter-spacing: 0.04em;
