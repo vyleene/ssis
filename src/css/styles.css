@@ -238,6 +238,39 @@ body {
     background-color: rgba(99, 102, 241, 0.06);
 }
 
+.dt-search {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    width: 100%;
+}
+
+.dt-search label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0;
+    font-weight: bold;
+    color: #6366f1;
+}
+
+.dt-search label::before {
+    content: "";
+    width: 22px;
+    height: 22px;
+    background-color: currentColor;
+    -webkit-mask: url("/img/heroicons/solid/magnifying-glass.svg") no-repeat center / contain;
+    mask: url("/img/heroicons/solid/magnifying-glass.svg") no-repeat center / contain;
+}
+
+.dt-search input[type="search"] {
+    width: 450px; /*1070px full*/
+    min-width: 450px; /*1070px full*/
+    max-width: 100%;
+    font-size: 1rem;
+}
+
 
 .btn-primary {
     border: none;
