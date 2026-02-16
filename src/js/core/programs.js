@@ -70,11 +70,87 @@ function openProgramModal(mode, data = {}) {
     }
 }
 
-function openDeleteProgramModal(programId) {
+async function getStudentProgramUsage(programId) {
+    const { rows } = await getCsvHeaderAndRows(csvConfigs[0].csvPath, csvConfigs[0].headerLine);
+    let count = 0;
+
+    rows.forEach((line) => {
+        const cells = line.split(',');
+        if((cells[3] || '') === programId) count += 1;
+    });
+
+    return count;
+}
+
+async function nullifyStudentProgramCodes(programId) {
+    const { normalizedPath, header, rows } = await getCsvHeaderAndRows(csvConfigs[0].csvPath, csvConfigs[0].headerLine);
+    let updatedCount = 0;
+
+    const updatedRows = rows.map((line) => {
+        const cells = line.split(',');
+        if((cells[3] || '') === programId) {
+            cells[3] = 'NULL';
+            updatedCount += 1;
+        }
+        return cells.join(',');
+    });
+
+    if(updatedCount) {
+        await Neutralino.filesystem.writeFile(normalizedPath, [header, ...updatedRows].join('\n') + '\n');
+    }
+
+    return updatedCount;
+}
+
+async function updateStudentProgramCodes(oldProgramId, newProgramId) {
+    if(!oldProgramId || !newProgramId || oldProgramId === newProgramId) return 0;
+
+    const { normalizedPath, header, rows } = await getCsvHeaderAndRows(csvConfigs[0].csvPath, csvConfigs[0].headerLine);
+    let updatedCount = 0;
+
+    const updatedRows = rows.map((line) => {
+        const cells = line.split(',');
+        if((cells[3] || '') === oldProgramId) {
+            cells[3] = newProgramId;
+            updatedCount += 1;
+        }
+        return cells.join(',');
+    });
+
+    if(updatedCount) {
+        await Neutralino.filesystem.writeFile(normalizedPath, [header, ...updatedRows].join('\n') + '\n');
+    }
+
+    return updatedCount;
+}
+
+async function openDeleteProgramModal(programId) {
     const $modal = $('#deleteProgramModal');
     if(!$modal.length) return;
 
     $('#delete-program-id').val(programId || '');
+
+    const $warning = $('#delete-program-warning');
+    if($warning.length) {
+        $warning.text('Checking program usage...');
+    }
+
+    try {
+        const count = programId ? await getStudentProgramUsage(programId) : 0;
+        $modal.attr('data-student-count', String(count));
+        if($warning.length) {
+            if(count > 0) {
+                const label = count === 1 ? 'student' : 'students';
+                $warning.html(`There ${count === 1 ? 'is' : 'are'} <b>${count} ${label}</b> using this program. Deleting will set their program code to <b>NULL</b>.`);
+            } else {
+                $warning.html('No students are currently using this program.');
+            }
+        }
+    } catch (error) {
+        if($warning.length) {
+            $warning.html('Unable to check student usage.');
+        }
+    }
 
     const ModalClass = window.bootstrap?.Modal;
     if(ModalClass) {
@@ -95,9 +171,9 @@ $(document).on('click', '.edit-program', function() {
     });
 });
 
-$(document).on('click', '.delete-program', function() {
+$(document).on('click', '.delete-program', async function() {
     const $btn = $(this);
-    openDeleteProgramModal($btn.attr('data-id'));
+    await openDeleteProgramModal($btn.attr('data-id'));
 });
 
 $(document).on('submit', '#program-form', async function(event) {
@@ -137,13 +213,24 @@ $(document).on('submit', '#program-form', async function(event) {
             return;
         }
 
+        let updatedStudentCount = 0;
+        if(mode === 'edit' && originalId && programCode !== originalId) {
+            updatedStudentCount = await updateStudentProgramCodes(originalId, programCode);
+        }
+
         await reloadProgramTable();
+        if(typeof reloadStudentTable === 'function' && updatedStudentCount) {
+            await reloadStudentTable();
+        }
 
         const modalEl = document.getElementById('programModal');
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
+        const studentSuffix = updatedStudentCount
+            ? ` ${updatedStudentCount} student${updatedStudentCount === 1 ? '' : 's'} updated.`
+            : '';
         const successMessage = mode === 'edit'
-            ? `Program <b>${programCode}</b> updated.`
+            ? `Program <b>${programCode}</b> updated.${studentSuffix}`
             : `Program <b>${programCode}</b> added.`;
         showToast(successMessage, 'success');
     } catch (error) {
@@ -157,6 +244,7 @@ $(document).on('click', '#confirm-delete-program', async function() {
     if(!programId) return;
 
     try {
+        const updatedCount = await nullifyStudentProgramCodes(programId);
         const result = await deleteCsvRecord({
             csvPath: csvConfigs[1].csvPath,
             headerLine: csvConfigs[1].headerLine,
@@ -170,11 +258,15 @@ $(document).on('click', '#confirm-delete-program', async function() {
         }
 
         await reloadProgramTable();
+        if(typeof reloadStudentTable === 'function' && updatedCount) {
+            await reloadStudentTable();
+        }
 
         const modalEl = document.getElementById('deleteProgramModal');
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
-        showToast(`Program <b>${programId}</b> deleted.`, 'success');
+        const studentSuffix = updatedCount ? ` ${updatedCount} student${updatedCount === 1 ? '' : 's'} set to NULL.` : '';
+        showToast(`Program <b>${programId}</b> deleted.${studentSuffix}`, 'success');
     } catch (error) {
         const message = error?.message ? `Failed to delete program: ${error.message}` : 'Failed to delete program.';
         showToast(message, 'danger');
