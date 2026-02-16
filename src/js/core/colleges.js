@@ -33,7 +33,7 @@ async function warnIfNullCollegeRecords() {
 
     if(nullCount) {
         const label = nullCount === 1 ? 'record' : 'records';
-        showToast(`Found ${nullCount} college ${label} with NULL values.`, 'warning');
+        showToast(`Found ${nullCount} college ${label} with NULL values.  Please resolve the ${label} as soon as possible.`, 'warning');
     }
 }
 
@@ -232,7 +232,7 @@ $(document).on('submit', '#college-form', async function(event) {
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
         const programSuffix = updatedProgramCount
-            ? ` ${updatedProgramCount} program${updatedProgramCount === 1 ? '' : 's'} updated.`
+            ? ` College codes updated for ${updatedProgramCount} program${updatedProgramCount === 1 ? '' : 's'}.`
             : '';
         const successMessage = mode === 'edit'
             ? `College <b>${collegeCode}</b> updated.${programSuffix}`
@@ -275,7 +275,7 @@ $(document).on('click', '#confirm-delete-college', async function() {
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
         if(updatedProgramCount) {
-            const programSuffix = ` ${updatedProgramCount} program${updatedProgramCount === 1 ? '' : 's'} set to NULL.`;
+            const programSuffix = ` College codes set to NULL for ${updatedProgramCount} program${updatedProgramCount === 1 ? '' : 's'}.`;
             showToast(`College <b>${collegeId}</b> deleted.${programSuffix}`, 'warning');
         } else {
             showToast(`College <b>${collegeId}</b> deleted.`, 'success');

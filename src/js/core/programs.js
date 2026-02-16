@@ -33,7 +33,7 @@ async function warnIfNullProgramRecords() {
 
     if(nullCount) {
         const label = nullCount === 1 ? 'record' : 'records';
-        showToast(`Found ${nullCount} program ${label} with NULL values.`, 'warning');
+        showToast(`Found ${nullCount} program ${label} with NULL values. Please resolve the ${label} as soon as possible.`, 'warning');
     }
 }
 
@@ -242,7 +242,7 @@ $(document).on('submit', '#program-form', async function(event) {
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
         const studentSuffix = updatedStudentCount
-            ? ` ${updatedStudentCount} student${updatedStudentCount === 1 ? '' : 's'} updated.`
+            ? ` Program codes updated for ${updatedStudentCount} student${updatedStudentCount === 1 ? '' : 's'}.`
             : '';
         const successMessage = mode === 'edit'
             ? `Program <b>${programCode}</b> updated.${studentSuffix}`
@@ -285,7 +285,7 @@ $(document).on('click', '#confirm-delete-program', async function() {
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
         if(updatedCount) {
-            const studentSuffix = ` ${updatedCount} student${updatedCount === 1 ? '' : 's'} set to NULL.`;
+            const studentSuffix = ` Program codes set to NULL for ${updatedCount} student${updatedCount === 1 ? '' : 's'}.`;
             showToast(`Program <b>${programId}</b> deleted.${studentSuffix}`, 'warning');
         } else {
             showToast(`Program <b>${programId}</b> deleted.`, 'success');
