@@ -10,15 +10,30 @@ const createStudentRecord = (id, f_name, l_name, code, year, gender) => {
     return $row.prop('outerHTML');
 };
 
-async function reloadStudentTable() {
+async function reloadStudentTable(options = {}) {
+    const { showNullWarning = true } = options;
     const $shell = $('#studentsTable').closest('.table-shell');
     $shell.addClass('is-loading');
 
     try {
         await loadCsvToTable(csvConfigs[0]);
+        if(showNullWarning) await warnIfNullStudentRecords();
         refreshDataTable('studentsTable');
     } finally {
         $shell.removeClass('is-loading');
+    }
+}
+
+async function warnIfNullStudentRecords() {
+    const { rows } = await getCsvHeaderAndRows(csvConfigs[0].csvPath, csvConfigs[0].headerLine);
+    const nullCount = rows.reduce((count, line) => {
+        const cells = line.split(',');
+        return cells.some((cell) => cell === 'NULL') ? count + 1 : count;
+    }, 0);
+
+    if(nullCount) {
+        const label = nullCount === 1 ? 'record' : 'records';
+        showToast(`Found ${nullCount} student ${label} with NULL values.`, 'warning');
     }
 }
 
@@ -194,7 +209,7 @@ $(document).on('submit', '#student-form', async function(event) {
             return;
         }
 
-        await reloadStudentTable();
+        await reloadStudentTable({ showNullWarning: false });
 
         const modalEl = document.getElementById('studentModal');
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
@@ -203,6 +218,7 @@ $(document).on('submit', '#student-form', async function(event) {
             ? `Student <b>${studentId}</b> updated.`
             : `Student <b>${studentId}</b> added.`;
         showToast(successMessage, 'success');
+        await warnIfNullStudentRecords();
     } catch (error) {
         const message = error?.message ? `Failed to save student: ${error.message}` : 'Failed to save student.';
         showToast(message, 'danger');
@@ -226,12 +242,13 @@ $(document).on('click', '#confirm-delete-student', async function() {
             return;
         }
 
-        await reloadStudentTable();
+        await reloadStudentTable({ showNullWarning: false });
 
         const modalEl = document.getElementById('deleteStudentModal');
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
         showToast(`Student <b>${studentId}</b> deleted.`, 'success');
+        await warnIfNullStudentRecords();
     } catch (error) {
         const message = error?.message ? `Failed to delete student: ${error.message}` : 'Failed to delete student.';
         showToast(message, 'danger');

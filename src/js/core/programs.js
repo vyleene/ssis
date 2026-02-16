@@ -10,15 +10,30 @@ const createProgramRecord = (code, name, college) => {
     return $row.prop('outerHTML');
 };
 
-async function reloadProgramTable() {
+async function reloadProgramTable(options = {}) {
+    const { showNullWarning = true } = options;
     const $shell = $('#programsTable').closest('.table-shell');
     $shell.addClass('is-loading');
 
     try {
         await loadCsvToTable(csvConfigs[1]);
+        if(showNullWarning) await warnIfNullProgramRecords();
         refreshDataTable('programsTable');
     } finally {
         $shell.removeClass('is-loading');
+    }
+}
+
+async function warnIfNullProgramRecords() {
+    const { rows } = await getCsvHeaderAndRows(csvConfigs[1].csvPath, csvConfigs[1].headerLine);
+    const nullCount = rows.reduce((count, line) => {
+        const cells = line.split(',');
+        return cells.some((cell) => cell === 'NULL') ? count + 1 : count;
+    }, 0);
+
+    if(nullCount) {
+        const label = nullCount === 1 ? 'record' : 'records';
+        showToast(`Found ${nullCount} program ${label} with NULL values.`, 'warning');
     }
 }
 
@@ -218,9 +233,9 @@ $(document).on('submit', '#program-form', async function(event) {
             updatedStudentCount = await updateStudentProgramCodes(originalId, programCode);
         }
 
-        await reloadProgramTable();
+        await reloadProgramTable({ showNullWarning: false });
         if(typeof reloadStudentTable === 'function' && updatedStudentCount) {
-            await reloadStudentTable();
+            await reloadStudentTable({ showNullWarning: false });
         }
 
         const modalEl = document.getElementById('programModal');
@@ -233,6 +248,10 @@ $(document).on('submit', '#program-form', async function(event) {
             ? `Program <b>${programCode}</b> updated.${studentSuffix}`
             : `Program <b>${programCode}</b> added.`;
         showToast(successMessage, 'success');
+        await warnIfNullProgramRecords();
+        if(updatedStudentCount) {
+            await warnIfNullStudentRecords();
+        }
     } catch (error) {
         const message = error?.message ? `Failed to save program: ${error.message}` : 'Failed to save program.';
         showToast(message, 'danger');
@@ -257,9 +276,9 @@ $(document).on('click', '#confirm-delete-program', async function() {
             return;
         }
 
-        await reloadProgramTable();
+        await reloadProgramTable({ showNullWarning: false });
         if(typeof reloadStudentTable === 'function' && updatedCount) {
-            await reloadStudentTable();
+            await reloadStudentTable({ showNullWarning: false });
         }
 
         const modalEl = document.getElementById('deleteProgramModal');
@@ -267,6 +286,10 @@ $(document).on('click', '#confirm-delete-program', async function() {
         modalInstance?.hide();
         const studentSuffix = updatedCount ? ` ${updatedCount} student${updatedCount === 1 ? '' : 's'} set to NULL.` : '';
         showToast(`Program <b>${programId}</b> deleted.${studentSuffix}`, 'success');
+        await warnIfNullProgramRecords();
+        if(updatedCount) {
+            await warnIfNullStudentRecords();
+        }
     } catch (error) {
         const message = error?.message ? `Failed to delete program: ${error.message}` : 'Failed to delete program.';
         showToast(message, 'danger');
