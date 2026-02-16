@@ -284,11 +284,12 @@ $(document).on('click', '#confirm-delete-program', async function() {
         const modalEl = document.getElementById('deleteProgramModal');
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
-        const studentSuffix = updatedCount ? ` ${updatedCount} student${updatedCount === 1 ? '' : 's'} set to NULL.` : '';
-        showToast(`Program <b>${programId}</b> deleted.${studentSuffix}`, 'success');
-        await warnIfNullProgramRecords();
         if(updatedCount) {
-            await warnIfNullStudentRecords();
+            const studentSuffix = ` ${updatedCount} student${updatedCount === 1 ? '' : 's'} set to NULL.`;
+            showToast(`Program <b>${programId}</b> deleted.${studentSuffix}`, 'warning');
+        } else {
+            showToast(`Program <b>${programId}</b> deleted.`, 'success');
+            await warnIfNullProgramRecords();
         }
     } catch (error) {
         const message = error?.message ? `Failed to delete program: ${error.message}` : 'Failed to delete program.';

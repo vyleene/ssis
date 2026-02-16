@@ -274,11 +274,12 @@ $(document).on('click', '#confirm-delete-college', async function() {
         const modalEl = document.getElementById('deleteCollegeModal');
         const modalInstance = modalEl ? window.bootstrap?.Modal?.getInstance(modalEl) : null;
         modalInstance?.hide();
-        const programSuffix = updatedProgramCount ? ` ${updatedProgramCount} program${updatedProgramCount === 1 ? '' : 's'} set to NULL.` : '';
-        showToast(`College <b>${collegeId}</b> deleted.${programSuffix}`, 'success');
-        await warnIfNullCollegeRecords();
         if(updatedProgramCount) {
-            await warnIfNullProgramRecords();
+            const programSuffix = ` ${updatedProgramCount} program${updatedProgramCount === 1 ? '' : 's'} set to NULL.`;
+            showToast(`College <b>${collegeId}</b> deleted.${programSuffix}`, 'warning');
+        } else {
+            showToast(`College <b>${collegeId}</b> deleted.`, 'success');
+            await warnIfNullCollegeRecords();
         }
     } catch (error) {
         const message = error?.message ? `Failed to delete college: ${error.message}` : 'Failed to delete college.';
