@@ -33,7 +33,7 @@ async function warnIfNullProgramRecords() {
 
     if(nullCount) {
         const label = nullCount === 1 ? 'record' : 'records';
-        showToast(`Found ${nullCount} program ${label} with NULL values. Please resolve the ${label} as soon as possible.`, 'warning');
+        showToast(`Found ${nullCount} program ${label} with NULL values.`, 'warning');
     }
 }
 
