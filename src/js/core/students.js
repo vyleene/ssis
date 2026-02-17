@@ -17,9 +17,10 @@ async function reloadStudentTable(options = {}) {
 
     try {
         await loadCsvToTable(csvConfigs[0]);
-        if(showNullWarning) await warnIfNullStudentRecords();
         refreshDataTable('studentsTable');
+        if(showNullWarning) await warnIfNullStudentRecords();
     } finally {
+        await new Promise((resolve) => setTimeout(resolve, 500));
         $shell.removeClass('is-loading');
     }
 }

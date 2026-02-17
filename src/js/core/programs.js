@@ -17,9 +17,10 @@ async function reloadProgramTable(options = {}) {
 
     try {
         await loadCsvToTable(csvConfigs[1]);
-        if(showNullWarning) await warnIfNullProgramRecords();
         refreshDataTable('programsTable');
+        if(showNullWarning) await warnIfNullProgramRecords();
     } finally {
+        await new Promise((resolve) => setTimeout(resolve, 500));
         $shell.removeClass('is-loading');
     }
 }
