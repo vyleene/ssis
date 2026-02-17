@@ -1,18 +1,18 @@
 # Simple Student Information System 🎓
 
-Manage students, programs, and colleges in a clean desktop UI with CSV-backed storage.
+A sleek, CSV-backed desktop app to manage Students, Programs, and Colleges with fast, searchable tables.
 
-## Overview ✨
+## At a Glance ✨
 
-Simple Student Information System is a lightweight app built with Neutralino, Bootstrap, and DataTables. It provides three directories (Students, Programs, and Colleges) and supports full CRUD operations using local CSV files.
+Simple Student Information System is a lightweight Neutralino app with a clean Bootstrap UI and DataTables-powered grids. It keeps data in local CSV files while supporting full CRUD for three core directories: Students, Programs, and Colleges.
 
-## Features ✅
+## Highlights ✅
 
-- Students, Programs, and Colleges tables
-- Create, read, update, and delete records
-- CSV-backed data storage
-- Fast, searchable tables with DataTables
-- Lightweight Neutralino desktop runtime
+- Three directories with dedicated tables
+- Full create, read, update, delete flows
+- Local CSV storage with schema validation
+- Fast search, sort, and pagination via DataTables
+- Lightweight Neutralino runtime for desktop delivery
 
 ## Data Model 🧾
 
@@ -27,7 +27,7 @@ Simple Student Information System is a lightweight app built with Neutralino, Bo
 - jQuery
 - DataTables
 
-## Project Structure 🗂️
+## Project Layout 🗂️
 
 ```
 src/
@@ -41,6 +41,8 @@ src/
 			colleges.js
 csv/
 	students.csv
+	programs.csv
+	colleges.csv
 ```
 
 ## Notes 📌
