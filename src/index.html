@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-bs-theme="light" class="theme-loading">
 <head>
     <meta charset="UTF-8">
     <title>Simple Student Information System</title>
@@ -16,6 +16,10 @@
             <span class="app-titlebar__title">Simple Student Information System</span>
         </div>
         <div class="app-titlebar__actions">
+            <button class="titlebar-btn titlebar-btn--theme" id="btn-theme" type="button" aria-label="Toggle theme" aria-pressed="false">
+                <span class="heroicon-url heroicon-url-solid icon-moon theme-icon theme-icon--moon" aria-hidden="true"></span>
+                <span class="heroicon-url heroicon-url-solid icon-sun theme-icon theme-icon--sun" aria-hidden="true"></span>
+            </button>
             <button class="titlebar-btn" id="btn-minimize" aria-label="Minimize window">—</button>
             <button class="titlebar-btn titlebar-btn--close" id="btn-close" aria-label="Close window">✕</button>
         </div>

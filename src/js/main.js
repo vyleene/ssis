@@ -1,11 +1,45 @@
-function initTitleBar() {
+async function initTitleBar() {
     const $titleBar = $('#app-titlebar');
+    const $themeBtn = $('#btn-theme');
     const $minimizeBtn = $('#btn-minimize');
     const $closeBtn = $('#btn-close');
+    const themeKey = 'ssis-theme';
 
-    if($titleBar.length) Neutralino.window.setDraggableRegion($titleBar[0], { exclude: [$minimizeBtn[0], $closeBtn[0]].filter(Boolean) });
+    const excludeButtons = [$themeBtn[0], $minimizeBtn[0], $closeBtn[0]].filter(Boolean);
+    if($titleBar.length) Neutralino.window.setDraggableRegion($titleBar[0], { exclude: excludeButtons });
     if($minimizeBtn.length) $minimizeBtn.on('click', async () => Neutralino.window.minimize());
     if($closeBtn.length) $closeBtn.on('click', async () => Neutralino.app.exit());
+
+    const applyTheme = async (theme) => {
+        const safeTheme = theme === 'dark' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-bs-theme', safeTheme);
+        if($themeBtn.length) {
+            const isDark = safeTheme === 'dark';
+            $themeBtn.attr('aria-pressed', isDark ? 'true' : 'false');
+            $themeBtn.attr('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+        }
+        try {
+            await Neutralino.storage.setData(themeKey, safeTheme);
+        } catch(_) {}
+    };
+
+    const getInitialTheme = async () => {
+        try {
+            const stored = await Neutralino.storage.getData(themeKey);
+            if(stored === 'light' || stored === 'dark') return stored;
+        } catch(_) {}
+        return 'light';
+    };
+
+    await applyTheme(await getInitialTheme());
+    document.documentElement.classList.remove('theme-loading');
+
+    if($themeBtn.length) {
+        $themeBtn.on('click', async () => {
+            const next = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+            await applyTheme(next);
+        });
+    }
 
     Neutralino.events.on('windowClose', () => Neutralino.app.exit());
 }
@@ -101,12 +135,12 @@ function showToast(message, variant) {
     }
 }
 
+Neutralino.init();
+
 $(document).ready(async () => {
+    await initTitleBar();
+    initDirectoryNav();
+
     await Promise.all(csvConfigs.map(config => loadCsvToTable(config)));
     csvConfigs.forEach(config => initDataTable(config.tableId));
-    
-    initTitleBar();
-    initDirectoryNav();
 });
-
-Neutralino.init();
