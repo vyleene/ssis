@@ -28,7 +28,7 @@ async function initTitleBar() {
             const stored = await Neutralino.storage.getData(themeKey);
             if(stored === 'light' || stored === 'dark') return stored;
         } catch(_) {}
-        return 'light';
+        return 'dark';
     };
 
     await applyTheme(await getInitialTheme());
