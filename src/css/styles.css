@@ -47,6 +47,7 @@ html[data-bs-theme="dark"] {
     --app-surface-2: #1c2230;
     --app-shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.45);
     --app-shadow-card: 0 18px 36px rgba(0, 0, 0, 0.55);
+    --app-titlebar-surface: #151a21;
 }
 
 body {
@@ -72,9 +73,8 @@ html.theme-loading body {
     align-items: center;
     justify-content: space-between;
     padding: 10px 16px;
-    background: linear-gradient(135deg, var(--app-surface), var(--app-surface-2));
+    background: var(--app-titlebar-surface, var(--app-surface));
     border-bottom: 1px solid var(--app-border);
-    box-shadow: var(--app-shadow-soft);
 }
 
 .app-titlebar__brand {
