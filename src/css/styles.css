@@ -380,8 +380,8 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
 
 .btn-primary {
     border: none;
-    background: var(--app-accent-strong);
-    color: var(--app-primary-contrast);
+    background: var(--app-accent-strong) !important;
+    color: var(--app-primary-contrast) !important;
     box-shadow: none;
 }
 
@@ -391,8 +391,13 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
 
 
 .btn-primary:hover {
-    background: color-mix(in srgb, var(--app-accent-strong) 85%, #000000 15%);
+    background: color-mix(in srgb, var(--app-accent-strong) 85%, #000000 15%) !important;
 }
+
+.btn-primary:active {
+    background: var(--app-accent-strong) !important;
+}
+
 
 .btn-outline-primary {
     border-color: var(--app-accent-strong);
@@ -441,15 +446,20 @@ html[data-bs-theme="dark"] .btn-outline-primary.active {
 }
 
 .btn-secondary {
-    background: var(--app-soft);
-    border-color: var(--app-border);
-    color: var(--app-text);
+    background: var(--app-soft) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
 }
 
 .btn-secondary:hover {
-    background: var(--app-hover);
-    border-color: var(--app-border);
-    color: var(--app-text);
+    background: var(--app-hover) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+}
+
+.btn-secondary:active {
+    background: var(--app-soft) !important;
+    border-color: var(--app-border) !important;
 }
 
 .form-control,
