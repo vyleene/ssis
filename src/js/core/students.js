@@ -1,14 +1,25 @@
-const createStudentRecord = (id, f_name, l_name, code, year, gender) => {
-    const $row = $('<tr>');
-    const $actions = $('<td>').addClass('text-center actions-col');
-    const $edit = $('<button>').addClass('btn btn-sm btn-outline-primary me-1 edit-student').attr({ 'data-id': id, 'data-fn': f_name, 'data-ln': l_name, 'data-cd': code, 'data-yr': year, 'data-gr': gender, 'aria-label': 'Edit student', title: 'Edit' }).html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
-    const $del = $('<button>').addClass('btn btn-sm btn-outline-danger delete-student').attr({ 'data-id': id, 'aria-label': 'Delete student', title: 'Delete' }).html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
+function renderStudentActions(row) {
+    const [id, f_name, l_name, code, year, gender] = row;
+    const $edit = $('<button>')
+        .addClass('btn btn-sm btn-outline-primary me-1 edit-student')
+        .attr({
+            'data-id': id,
+            'data-fn': f_name,
+            'data-ln': l_name,
+            'data-cd': code,
+            'data-yr': year,
+            'data-gr': gender,
+            'aria-label': 'Edit student',
+            title: 'Edit',
+        })
+        .html('<span class="heroicon-url heroicon-url-outline icon-pencil-square" aria-hidden="true"></span>');
+    const $del = $('<button>')
+        .addClass('btn btn-sm btn-outline-danger delete-student')
+        .attr({ 'data-id': id, 'aria-label': 'Delete student', title: 'Delete' })
+        .html('<span class="heroicon-url heroicon-url-outline icon-trash" aria-hidden="true"></span>');
 
-    $actions.append($edit, $del);
-    $row.append($('<td>').text(id), $('<td>').text(f_name), $('<td>').text(l_name), $('<td>').text(code), $('<td>').text(year), $('<td>').text(gender), $actions);
-
-    return $row.prop('outerHTML');
-};
+    return $('<div>').append($edit, $del).html();
+}
 
 async function reloadStudentTable(options = {}) {
     const { showNullWarning = true } = options;
@@ -16,11 +27,11 @@ async function reloadStudentTable(options = {}) {
     $shell.addClass('is-loading');
 
     try {
-        await loadCsvToTable(csvConfigs[0]);
-        refreshDataTable('studentsTable');
+        const records = await loadCsvToTable(csvConfigs[0]);
+        refreshDataTable('studentsTable', records, csvConfigs[0].tableColumns);
         if(showNullWarning) await warnIfNullStudentRecords();
     } finally {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        //await new Promise((resolve) => setTimeout(resolve, 500));
         $shell.removeClass('is-loading');
     }
 }

@@ -64,7 +64,7 @@ function initDirectoryNav() {
     });
 }
 
-function initDataTable(tableId) {
+function initDataTable(tableId, data = null, columns = null) {
     if(typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') return;
 
     const $table = $(`#${tableId}`);
@@ -72,27 +72,44 @@ function initDataTable(tableId) {
 
     if($.fn.DataTable.isDataTable($table)) $table.DataTable().destroy();
 
-    $table.DataTable({
+    const options = {
         responsive: true,
         fixedHeader: true,
         paging: true,
         lengthChange: false,
-    });
+        deferRender: true,
+        searchDelay: 100,
+        autoWidth: false,
+        pageLength: 10,
+        stateSave: true
+    };
+
+    if(Array.isArray(data) && Array.isArray(columns)) {
+        options.data = data;
+        options.columns = columns;
+    }
+
+    $table.DataTable(options);
 }
 
-function refreshDataTable(tableId) {
+function refreshDataTable(tableId, data = null, columns = null) {
     if(typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') return;
 
     const $table = $(`#${tableId}`);
     if(!$table.length) return;
 
     if($.fn.DataTable.isDataTable($table)) {
-        const rows = $table.find('tbody tr').toArray();
         const dataTable = $table.DataTable();
-        dataTable.clear();
-        dataTable.rows.add(rows).draw(false);
+        if(Array.isArray(data)) {
+            dataTable.clear();
+            dataTable.rows.add(data).draw(false);
+        } else {
+            const rows = $table.find('tbody tr').toArray();
+            dataTable.clear();
+            dataTable.rows.add(rows).draw(false);
+        }
     } else {
-        initDataTable(tableId);
+        initDataTable(tableId, data, columns);
     }
 }
 
@@ -141,6 +158,6 @@ $(document).ready(async () => {
     await initTitleBar();
     initDirectoryNav();
 
-    await Promise.all(csvConfigs.map(config => loadCsvToTable(config)));
-    csvConfigs.forEach(config => initDataTable(config.tableId));
+    const recordsByTable = await Promise.all(csvConfigs.map(config => loadCsvToTable(config)));
+    csvConfigs.forEach((config, index) => initDataTable(config.tableId, recordsByTable[index], config.tableColumns));
 });

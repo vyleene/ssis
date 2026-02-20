@@ -6,7 +6,21 @@ const csvConfigs = [
         headerLine: 'ID,First Name,Last Name,Program Code,Year,Gender',
         headers: ['ID', 'First Name', 'Last Name', 'Program Code', 'Year', 'Gender'],
         columns: 6,
-        rowMapper: ([id, f_name, l_name, code, year, gender]) => createStudentRecord(id, f_name, l_name, code, year, gender),
+        tableColumns: [
+            { data: 0 },
+            { data: 1 },
+            { data: 2 },
+            { data: 3 },
+            { data: 4 },
+            { data: 5 },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center actions-col',
+                render: (_, __, row) => renderStudentActions(row),
+            },
+        ],
     },
     {
         tableId: 'programsTable',
@@ -14,7 +28,18 @@ const csvConfigs = [
         headerLine: 'Code,Name,College',
         headers: ['Code', 'Name', 'College'],
         columns: 3,
-        rowMapper: ([code, name, college]) => createProgramRecord(code, name, college),
+        tableColumns: [
+            { data: 0 },
+            { data: 1 },
+            { data: 2 },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center actions-col',
+                render: (_, __, row) => renderProgramActions(row),
+            },
+        ],
         populateOptions: (records) => populateProgramOptions(records),
     },
     {
@@ -23,7 +48,17 @@ const csvConfigs = [
         headerLine: 'Code,Name',
         headers: ['Code', 'Name'],
         columns: 2,
-        rowMapper: ([code, name]) => createCollegeRecord(code, name),
+        tableColumns: [
+            { data: 0 },
+            { data: 1 },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center actions-col',
+                render: (_, __, row) => renderCollegeActions(row),
+            },
+        ],
         populateOptions: (records) => populateCollegeOptions(records),
     }
 ];
@@ -102,7 +137,7 @@ async function loadCsvToTable(config) {
     const $table = $(`#${config.tableId}`);
     const $tbody = $table.find('tbody');
 
-    if(!$table.length || !$tbody.length) return;
+    if(!$table.length || !$tbody.length) return [];
 
     try {
         const normalizedPath = await ensureCsvFile(config.csvPath, config.headerLine);
@@ -113,10 +148,11 @@ async function loadCsvToTable(config) {
         if(empty) showToast(`No records found for <b>${config.tableId}</b>.`, 'warning');
         if(config.populateOptions) config.populateOptions(records);
 
-        $tbody.html(records.map(config.rowMapper).join(''));
+        return records;
     } catch (error) {
         const message = error?.message ? `Failed to load <b>${config.tableId}</b>: ${error.message}` : `Failed to load <b>${config.tableId}</b>.`;
         showToast(message, 'danger');
+        return [];
     }
 }
 
