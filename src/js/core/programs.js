@@ -182,6 +182,51 @@ async function openDeleteProgramModal(programId) {
     }
 }
 
+async function openProgramInfoModal(values) {
+    const $modal = $('#programInfoModal');
+    if(!$modal.length) return;
+
+    const [programCode, programName, collegeCode] = values;
+    let collegeName = '';
+
+    if(typeof collegeRecordsCache !== 'undefined' && Array.isArray(collegeRecordsCache)) {
+        const collegeRecord = collegeRecordsCache.find(([code]) => code === collegeCode);
+        if(collegeRecord) {
+            collegeName = collegeRecord[1] || '';
+        }
+    }
+
+    $('#program-info-code').text(programCode || '-');
+    $('#program-info-name').text(programName || '-');
+    $('#program-info-college-name').text(collegeName || collegeCode || '-');
+    const $collegeCode = $('#program-info-college-code');
+    $collegeCode
+        .text(collegeCode || '')
+        .toggleClass('d-none', !collegeCode)
+        .attr('data-college', collegeCode || '');
+
+    const $studentCount = $('#program-info-student-count');
+    $studentCount.text('...');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+
+    if(!programCode) {
+        $studentCount.text('N/A');
+        return;
+    }
+
+    try {
+        const count = await getStudentProgramUsage(programCode);
+        const label = count === 1 ? 'student' : 'students';
+        $studentCount.text(`${count} ${label}`);
+    } catch (_) {
+        $studentCount.text('N/A');
+    }
+}
+
 $(document).on('click', '#btn-refresh-program', () => reloadProgramTable());
 
 $(document).on('click', '#btn-add-program', () => openProgramModal('add'));

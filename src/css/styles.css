@@ -25,6 +25,9 @@
     --app-surface-2: color-mix(in srgb, var(--app-surface) 90%, var(--app-text) 10%);
     --app-shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.08);
     --app-shadow-card: 0 16px 30px rgba(0, 0, 0, 0.12);
+    --dt-row-selected: 47, 107, 255;
+    --dt-row-selected-text: 255, 255, 255;
+    --dt-row-selected-link: 228, 228, 228;
 }
 
 html[data-bs-theme="light"] {
@@ -36,6 +39,9 @@ html[data-bs-theme="light"] {
     --app-surface-2: #f2f6ff;
     --app-shadow-soft: 0 10px 26px rgba(47, 107, 255, 0.12);
     --app-shadow-card: 0 18px 36px rgba(15, 23, 42, 0.12);
+    --dt-row-selected: 47, 107, 255;
+    --dt-row-selected-text: 255, 255, 255;
+    --dt-row-selected-link: 228, 228, 228;
 }
 
 html[data-bs-theme="dark"] {
@@ -48,6 +54,9 @@ html[data-bs-theme="dark"] {
     --app-shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.45);
     --app-shadow-card: 0 18px 36px rgba(0, 0, 0, 0.55);
     --app-titlebar-surface: #151a21;
+    --dt-row-selected: 255, 209, 102;
+    --dt-row-selected-text: 27, 31, 38;
+    --dt-row-selected-link: 27, 31, 38;
 }
 
 body {
@@ -60,6 +69,7 @@ body {
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     transition: opacity 0.15s ease;
 }
+
 
 html.theme-loading body {
     opacity: 0;
@@ -445,6 +455,30 @@ html[data-bs-theme="dark"] .btn-outline-primary.active {
     color: var(--app-danger);
 }
 
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary,
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-danger {
+    border-color: transparent;
+    color: var(--app-primary-contrast);
+}
+
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary {
+    background: var(--app-primary-contrast);
+    color: var(--app-accent-strong);
+}
+
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-danger {
+    background: var(--app-danger);
+}
+
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary .heroicon-url,
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-danger .heroicon-url {
+    color: var(--app-primary-contrast);
+}
+
+table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary .heroicon-url {
+    color: var(--app-accent-strong);
+}
+
 .btn-secondary {
     background: var(--app-soft) !important;
     border-color: var(--app-border) !important;
@@ -503,6 +537,29 @@ html[data-bs-theme="dark"] .btn-outline-primary.active {
 
 .table thead th {
     background-color: var(--app-soft) !important;
+}
+
+table.dataTable tbody td {
+    cursor: pointer !important;
+}
+
+table.table.dataTable > tbody > tr.selected > * {
+    background-color: rgba(var(--dt-row-selected), 0.85) !important;
+    color: rgb(var(--dt-row-selected-text)) !important;
+}
+
+table.table.dataTable.table-striped > tbody > tr.selected > * {
+    background-color: rgba(var(--dt-row-selected), 0.85) !important;
+}
+
+table.dataTable tbody td.actions-col,
+table.dataTable tbody td.dataTables_empty,
+table.dataTable tbody td.dt-control {
+    cursor: default !important;
+}
+
+table.dataTable tbody td.actions-col button {
+    cursor: pointer !important;
 }
 
 
@@ -600,6 +657,127 @@ html[data-bs-theme="dark"] .btn-outline-primary.active {
     background-color: var(--app-surface);
     border-color: var(--app-border);
     color: var(--app-text);
+}
+
+.student-info__header {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--app-surface) 92%, var(--app-accent-soft) 8%);
+    box-shadow: var(--app-shadow-soft);
+}
+
+.student-info__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--app-muted);
+}
+
+.student-info__label .heroicon-url {
+    width: 14px;
+    height: 14px;
+}
+
+.student-info__value {
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--app-text);
+}
+
+.student-info__subvalue {
+    font-size: 0.85rem;
+    color: var(--app-muted);
+}
+
+.student-info__inline {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 10px;
+}
+
+.student-info__inline .student-info__badge {
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+.student-info__inline .student-info__value {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.student-info__meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.student-info__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--app-surface) 92%, var(--app-accent-soft) 8%);
+    border: 1px solid var(--app-border);
+}
+
+.student-info__meta-item .student-info__label {
+    margin: 0;
+}
+
+
+.student-info__badge {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.student-info__badge[data-college="CCS"] {
+    background-color: #1f6f8b !important;
+}
+
+.student-info__badge[data-college="COE"] {
+    background-color: #800000 !important;
+}
+
+.student-info__badge[data-college="CSM"] {
+    background-color: #e00000 !important;
+}
+
+.student-info__badge[data-college="CASS"] {
+    background-color: #2f7d32 !important;
+}
+
+.student-info__badge[data-college="CEBA"] {
+    background-color: #f0b429 !important;
+}
+
+.student-info__badge[data-college="CHS"] {
+    background-color: #5dade2 !important;
+}
+
+.student-info__badge[data-college="CED"] {
+    background-color: #2f6bff !important;
+}
+
+.student-info__chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--app-surface) 88%, var(--app-accent-soft) 12%);
+    border: 1px solid var(--app-border);
+    font-size: 0.88rem;
 }
 
 .heroicon-url {

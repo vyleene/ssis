@@ -168,6 +168,69 @@ async function openDeleteCollegeModal(collegeId) {
     }
 }
 
+async function getCollegeStudentCount(collegeId) {
+    if(!collegeId) return 0;
+
+    const { rows: programRows } = await getCsvHeaderAndRows(csvConfigs[1].csvPath, csvConfigs[1].headerLine);
+    const programToCollege = new Map();
+    programRows.forEach((line) => {
+        const [programCode, , programCollege] = line.split(',');
+        if(programCode && programCollege) programToCollege.set(programCode, programCollege);
+    });
+
+    const { rows: studentRows } = await getCsvHeaderAndRows(csvConfigs[0].csvPath, csvConfigs[0].headerLine);
+    let count = 0;
+    studentRows.forEach((line) => {
+        const cells = line.split(',');
+        const programCode = cells[3] || '';
+        if(programToCollege.get(programCode) === collegeId) count += 1;
+    });
+
+    return count;
+}
+
+async function openCollegeInfoModal(values) {
+    const $modal = $('#collegeInfoModal');
+    if(!$modal.length) return;
+
+    const [collegeCode, collegeName] = values;
+
+    $('#college-info-code').text(collegeCode || '-');
+    $('#college-info-name').text(collegeName || '-');
+
+    const $programCount = $('#college-info-program-count');
+    $programCount.text('...');
+    const $studentCount = $('#college-info-student-count');
+    $studentCount.text('...');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+
+    if(!collegeCode) {
+        $programCount.text('N/A');
+        $studentCount.text('N/A');
+        return;
+    }
+
+    try {
+        const count = await getProgramCollegeUsage(collegeCode);
+        const label = count === 1 ? 'program' : 'programs';
+        $programCount.text(`${count} ${label}`);
+    } catch (_) {
+        $programCount.text('N/A');
+    }
+
+    try {
+        const count = await getCollegeStudentCount(collegeCode);
+        const label = count === 1 ? 'student' : 'students';
+        $studentCount.text(`${count} ${label}`);
+    } catch (_) {
+        $studentCount.text('N/A');
+    }
+}
+
 $(document).on('click', '#btn-refresh-college', () => reloadCollegeTable());
 
 $(document).on('click', '#btn-add-college', () => openCollegeModal('add'));

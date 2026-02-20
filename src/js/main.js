@@ -72,6 +72,11 @@ function initDataTable(tableId, data = null, columns = null) {
 
     if($.fn.DataTable.isDataTable($table)) $table.DataTable().destroy();
 
+    const tableMeta = {
+        studentsTable: { openInfo: openStudentInfoModal },
+        programsTable: { openInfo: openProgramInfoModal },
+        collegesTable: { openInfo: openCollegeInfoModal },
+    }[tableId];
     const options = {
         responsive: true,
         fixedHeader: true,
@@ -81,7 +86,22 @@ function initDataTable(tableId, data = null, columns = null) {
         searchDelay: 100,
         autoWidth: false,
         pageLength: 10,
-        stateSave: true
+        stateSave: true,
+        select: {
+            style: 'single',
+            selector: 'td:not(.actions-col)'
+        },
+        initComplete: function() {
+            if(!tableMeta?.openInfo) return;
+            const api = this.api();
+            const $node = $(api.table().node());
+            $node.off('select.dt.infoModal').on('select.dt.infoModal', function(event, dt, type, indexes) {
+                if(type !== 'row' || !indexes?.length) return;
+                const rowData = dt.row(indexes[0]).data();
+                if(!rowData || !Array.isArray(rowData)) return;
+                tableMeta.openInfo(rowData);
+            });
+        }
     };
 
     if(Array.isArray(data) && Array.isArray(columns)) {

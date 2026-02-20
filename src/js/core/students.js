@@ -138,6 +138,53 @@ function openDeleteStudentModal(studentId) {
     }
 }
 
+function openStudentInfoModal(values) {
+    const $modal = $('#studentInfoModal');
+    if(!$modal.length) return;
+
+    const [id, firstName, lastName, programCode, yearLevel, gender] = values;
+    const normalizedGender = gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : (gender || '-');
+    let programName = '';
+    let collegeCode = '';
+    let collegeName = '';
+
+    if(typeof programRecordsCache !== 'undefined' && Array.isArray(programRecordsCache)) {
+        const programRecord = programRecordsCache.find(([code]) => code === programCode);
+        if(programRecord) {
+            programName = programRecord[1] || '';
+            collegeCode = programRecord[2] || '';
+        }
+    }
+
+    if(collegeCode && typeof collegeRecordsCache !== 'undefined' && Array.isArray(collegeRecordsCache)) {
+        const collegeRecord = collegeRecordsCache.find(([code]) => code === collegeCode);
+        if(collegeRecord) {
+            collegeName = collegeRecord[1] || '';
+        }
+    }
+
+    $('#student-info-id').text(id || '-');
+    $('#student-info-name').text([firstName, lastName].filter(Boolean).join(' ') || '-');
+    $('#student-info-gender').text(normalizedGender || '-');
+    $('#student-info-year').text(yearLevel || '-');
+    const resolvedProgramName = programName || programCode || '-';
+    $('#student-info-program-name').text(resolvedProgramName);
+    const $programCode = $('#student-info-program-code');
+    $programCode.text(programCode || '').toggleClass('d-none', !programCode);
+
+    $('#student-info-college-name').text(collegeName || collegeCode || '-');
+    const $collegeCode = $('#student-info-college-code');
+    $collegeCode
+        .text(collegeCode || '')
+        .toggleClass('d-none', !collegeCode)
+        .attr('data-college', collegeCode || '');
+
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass) {
+        ModalClass.getOrCreateInstance($modal[0]).show();
+    }
+}
+
 $(document).on('click', '#btn-refresh-student', () => reloadStudentTable());
 
 $(document).on('click', '#btn-add-student', () => openStudentModal('add'));

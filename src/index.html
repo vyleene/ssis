@@ -64,6 +64,10 @@
                                 <span class="heroicon-url heroicon-url-outline icon-user-plus" aria-hidden="true"></span>
                                 Add student
                             </button>
+                            <button class="btn btn-secondary d-inline-flex align-items-center gap-2" id="btn-upload-student" type="button" aria-label="Import students">
+                                <span class="heroicon-url heroicon-url-outline icon-arrow-up-tray" aria-hidden="true"></span>
+                                Import
+                            </button>
                             <button class="btn btn-secondary d-inline-flex align-items-center" id="btn-refresh-student" type="button" aria-label="Refresh students">
                                 <span class="heroicon-url heroicon-url-outline icon-arrow-path" aria-hidden="true"></span>
                             </button>
@@ -104,6 +108,10 @@
                                 <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
                                 Add program
                             </button>
+                            <button class="btn btn-secondary d-inline-flex align-items-center gap-2" id="btn-upload-program" type="button" aria-label="Import programs">
+                                <span class="heroicon-url heroicon-url-outline icon-arrow-up-tray" aria-hidden="true"></span>
+                                Import
+                            </button>
                             <button class="btn btn-secondary d-inline-flex align-items-center" id="btn-refresh-program" type="button" aria-label="Refresh programs">
                                 <span class="heroicon-url heroicon-url-outline icon-arrow-path" aria-hidden="true"></span>
                             </button>
@@ -142,6 +150,10 @@
                             <button class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-add-college" type="button">
                                 <span class="heroicon-url heroicon-url-outline icon-plus" aria-hidden="true"></span>
                                 Add college
+                            </button>
+                            <button class="btn btn-secondary d-inline-flex align-items-center gap-2" id="btn-upload-college" type="button" aria-label="Import colleges">
+                                <span class="heroicon-url heroicon-url-outline icon-arrow-up-tray" aria-hidden="true"></span>
+                                Import
                             </button>
                             <button class="btn btn-secondary d-inline-flex align-items-center" id="btn-refresh-college" type="button" aria-label="Refresh colleges">
                                 <span class="heroicon-url heroicon-url-outline icon-arrow-path" aria-hidden="true"></span>
@@ -419,6 +431,177 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirm-delete-college">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Info Modal -->
+    <div class="modal fade" id="studentInfoModal" tabindex="-1" aria-labelledby="studentInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="studentInfoModalLabel">Student Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="studentInfoModalBody">
+                    <div class="student-info">
+                        <div class="student-info__header">
+                            <div>
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-identification" aria-hidden="true"></span>
+                                    Student ID
+                                </div>
+                                <div class="student-info__value" id="student-info-id"></div>
+                            </div>
+                            <div>
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-user" aria-hidden="true"></span>
+                                    Name
+                                </div>
+                                <div class="student-info__value" id="student-info-name"></div>
+                            </div>
+                        </div>
+                        <div class="student-info__meta mt-3">
+                            <div class="student-info__meta-item">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-users" aria-hidden="true"></span>
+                                    Gender
+                                </div>
+                                <div class="student-info__value student-info__chip" id="student-info-gender"></div>
+                            </div>
+                            <div class="student-info__meta-item">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-calendar-days" aria-hidden="true"></span>
+                                    Year Level
+                                </div>
+                                <div class="student-info__value student-info__chip" id="student-info-year"></div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-12">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-academic-cap" aria-hidden="true"></span>
+                                    Program
+                                </div>
+                                <div class="student-info__inline">
+                                    <span class="badge rounded-pill text-bg-secondary student-info__badge" id="student-info-program-code"></span>
+                                    <div class="student-info__value" id="student-info-program-name"></div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-building-library" aria-hidden="true"></span>
+                                    College
+                                </div>
+                                <div class="student-info__inline">
+                                    <span class="badge rounded-pill text-bg-secondary student-info__badge" id="student-info-college-code"></span>
+                                    <div class="student-info__value" id="student-info-college-name"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Program Info Modal -->
+    <div class="modal fade" id="programInfoModal" tabindex="-1" aria-labelledby="programInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="programInfoModalLabel">Program Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="programInfoModalBody">
+                    <div class="student-info">
+                        <div class="student-info__header">
+                            <div>
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-tag" aria-hidden="true"></span>
+                                    Program Code
+                                </div>
+                                <div class="student-info__value" id="program-info-code"></div>
+                            </div>
+                            <div>
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-document-text" aria-hidden="true"></span>
+                                    Program Name
+                                </div>
+                                <div class="student-info__value" id="program-info-name"></div>
+                            </div>
+                        </div>
+                        <div class="student-info__meta mt-3">
+                            <div class="student-info__meta-item">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-user-group" aria-hidden="true"></span>
+                                    Students
+                                </div>
+                                <div class="student-info__value student-info__chip" id="program-info-student-count"></div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-3">
+                            <div class="col-12">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-building-library" aria-hidden="true"></span>
+                                    College
+                                </div>
+                                <div class="student-info__inline">
+                                    <span class="badge rounded-pill text-bg-secondary student-info__badge" id="program-info-college-code"></span>
+                                    <div class="student-info__value" id="program-info-college-name"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- College Info Modal -->
+    <div class="modal fade" id="collegeInfoModal" tabindex="-1" aria-labelledby="collegeInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="collegeInfoModalLabel">College Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="collegeInfoModalBody">
+                    <div class="student-info">
+                        <div class="student-info__header">
+                            <div>
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-tag" aria-hidden="true"></span>
+                                    College Code
+                                </div>
+                                <div class="student-info__value" id="college-info-code"></div>
+                            </div>
+                            <div>
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-building-library" aria-hidden="true"></span>
+                                    College Name
+                                </div>
+                                <div class="student-info__value" id="college-info-name"></div>
+                            </div>
+                        </div>
+                        <div class="student-info__meta mt-3">
+                            <div class="student-info__meta-item">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-clipboard-document" aria-hidden="true"></span>
+                                    Programs
+                                </div>
+                                <div class="student-info__value student-info__chip" id="college-info-program-count"></div>
+                            </div>
+                            <div class="student-info__meta-item">
+                                <div class="student-info__label">
+                                    <span class="heroicon-url heroicon-url-outline icon-user-group" aria-hidden="true"></span>
+                                    Students
+                                </div>
+                                <div class="student-info__value student-info__chip" id="college-info-student-count"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
