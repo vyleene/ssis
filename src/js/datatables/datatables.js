@@ -4,10 +4,10 @@
  *
  * To rebuild or modify this file with the latest versions of the included
  * software please visit:
- *   https://datatables.net/download/#bs5/dt-2.3.7/b-3.2.6/date-1.6.3/fc-5.0.5/fh-4.0.5/r-3.0.8/rg-1.6.0/sp-2.3.5
+ *   https://datatables.net/download/#bs5/dt-2.3.7/b-3.2.6/fc-5.0.5/fh-4.0.6/kt-2.12.2/r-3.0.8/rg-1.6.0/sc-2.4.3/sp-2.3.5/sl-3.1.3/sr-1.4.3
  *
  * Included libraries:
- *   DataTables 2.3.7, Buttons 3.2.6, DateTime 1.6.3, FixedColumns 5.0.5, FixedHeader 4.0.5, Responsive 3.0.8, RowGroup 1.6.0, SearchPanes 2.3.5
+ *   DataTables 2.3.7, Buttons 3.2.6, FixedColumns 5.0.5, FixedHeader 4.0.6, KeyTable 2.12.2, Responsive 3.0.8, RowGroup 1.6.0, Scroller 2.4.3, SearchPanes 2.3.5, Select 3.1.3, StateRestore 1.4.3
  */
 
 /*! DataTables 2.3.7
@@ -525,7 +525,7 @@
 		 *
 		 *  @type string
 		 */
-		builder: "bs5/dt-2.3.7/b-3.2.6/date-1.6.3/fc-5.0.5/fh-4.0.5/r-3.0.8/rg-1.6.0/sp-2.3.5",
+		builder: "bs5/dt-2.3.7/b-3.2.6/fc-5.0.5/fh-4.0.6/kt-2.12.2/r-3.0.8/rg-1.6.0/sc-2.4.3/sp-2.3.5/sl-3.1.3/sr-1.4.3",
 	
 		/**
 		 * Buttons. For use with the Buttons extension for DataTables. This is
@@ -17378,1844 +17378,6 @@ return DataTable;
 }));
 
 
-/*! DateTime picker for DataTables.net v1.6.3
- *
- * © SpryMedia Ltd, all rights reserved.
- * License: MIT datatables.net/license/mit
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		var jq = require('jquery');
-		var cjsRequires = function (root, $) {		};
-
-		if (typeof window === 'undefined') {
-			module.exports = function (root, $) {
-				if ( ! root ) {
-					// CommonJS environments without a window global must pass a
-					// root. This will give an error otherwise
-					root = window;
-				}
-
-				if ( ! $ ) {
-					$ = jq( root );
-				}
-
-				cjsRequires( root, $ );
-				return factory( $, root, root.document );
-			};
-		}
-		else {
-			cjsRequires( window, jq );
-			module.exports = factory( jq, window, window.document );
-		}
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document ) {
-'use strict';
-
-
-
-/**
- * @summary     DateTime picker for DataTables.net
- * @version     1.6.3
- * @file        dataTables.dateTime.js
- * @author      SpryMedia Ltd
- * @contact     www.datatables.net/contact
- */
-
-// Supported formatting and parsing libraries:
-// * Moment
-// * Luxon
-// * DayJS
-var dateLib;
-
-/*
- * This file provides a DateTime GUI picker (calendar and time input). Only the
- * format YYYY-MM-DD is supported without additional software, but the end user
- * experience can be greatly enhanced by including the momentjs, dayjs or luxon library
- * which provide date / time parsing and formatting options.
- *
- * This functionality is required because the HTML5 date and datetime input
- * types are not widely supported in desktop browsers.
- *
- * Constructed by using:
- *
- *     new DateTime( input, opts )
- *
- * where `input` is the HTML input element to use and `opts` is an object of
- * options based on the `DateTime.defaults` object.
- */
-var DateTime = function (input, opts) {
-        // Check if called with a window or jQuery object for DOM less applications
-	// This is for backwards compatibility with CommonJS loader
-	if (DateTime.factory(input, opts)) {
-		return DateTime;
-	}
-
-	// Attempt to auto detect the formatting library (if there is one). Having it in
-	// the constructor allows load order independence.
-	if (typeof dateLib === 'undefined') {
-		dateLib = window.moment
-			? window.moment
-			: window.dayjs
-				? window.dayjs
-				: window.luxon
-					? window.luxon
-					: null;
-	}
-
-	this.c = $.extend(true, {}, DateTime.defaults, opts);
-	var classPrefix = this.c.classPrefix;
-
-	// Only IS8601 dates are supported without moment, dayjs or luxon
-	if (!dateLib && this.c.format !== 'YYYY-MM-DD') {
-		throw "DateTime: Without momentjs, dayjs or luxon only the format 'YYYY-MM-DD' can be used";
-	}
-
-	if (this._isLuxon() && this.c.format == 'YYYY-MM-DD') {
-		this.c.format =  'yyyy-MM-dd'
-	}
-
-	// Min and max need to be `Date` objects in the config
-	if (typeof this.c.minDate === 'string') {
-		this.c.minDate = new Date(this.c.minDate);
-	}
-	if (typeof this.c.maxDate === 'string') {
-		this.c.maxDate = new Date(this.c.maxDate);
-	}
-
-	// DOM structure
-	var structure = $(
-		'<div class="' + classPrefix + '">' +
-		'<div class="' + classPrefix + '-date">' +
-		'<div class="' + classPrefix + '-title">' +
-		'<div class="' + classPrefix + '-iconLeft">' +
-		'<button type="button"></button>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-iconRight">' +
-		'<button type="button"></button>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-label">' +
-		'<span></span>' +
-		'<select class="' + classPrefix + '-month"></select>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-label">' +
-		'<span></span>' +
-		'<select class="' + classPrefix + '-year"></select>' +
-		'</div>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-buttons">' +
-		'<a class="' + classPrefix + '-clear"></a>' +
-		'<a class="' + classPrefix + '-today"></a>' +
-		'<a class="' + classPrefix + '-selected"></a>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-calendar"></div>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-time">' +
-		'<div class="' + classPrefix + '-hours"></div>' +
-		'<div class="' + classPrefix + '-minutes"></div>' +
-		'<div class="' + classPrefix + '-seconds"></div>' +
-		'</div>' +
-		'<div class="' + classPrefix + '-error"></div>' +
-		'</div>'
-	);
-
-	this.dom = {
-		container: structure,
-		date: structure.find('.' + classPrefix + '-date'),
-		title: structure.find('.' + classPrefix + '-title'),
-		calendar: structure.find('.' + classPrefix + '-calendar'),
-		time: structure.find('.' + classPrefix + '-time'),
-		error: structure.find('.' + classPrefix + '-error'),
-		buttons: structure.find('.' + classPrefix + '-buttons'),
-		clear: structure.find('.' + classPrefix + '-clear'),
-		today: structure.find('.' + classPrefix + '-today'),
-		selected: structure.find('.' + classPrefix + '-selected'),
-		previous: structure.find('.' + classPrefix + '-iconLeft'),
-		next: structure.find('.' + classPrefix + '-iconRight'),
-		input: $(input)
-	};
-
-	this.s = {
-		/** @type {Date} Date value that the picker has currently selected */
-		d: null,
-
-		/** @type {Date} Date of the calendar - might not match the value */
-		display: null,
-
-		/** @type {number} Used to select minutes in a range where the range base is itself unavailable */
-		minutesRange: null,
-
-		/** @type {number} Used to select minutes in a range where the range base is itself unavailable */
-		secondsRange: null,
-
-		/** @type {String} Unique namespace string for this instance */
-		namespace: 'datetime-' + (DateTime._instance++),
-
-		/** @type {Object} Parts of the picker that should be shown */
-		parts: {
-			date: this.c.format.match(/[yYMDd]|L(?!T)|l/) !== null,
-			time: this.c.format.match(/[Hhm]|LT|LTS/) !== null,
-			seconds: this.c.format.indexOf('s') !== -1,
-			hours12: this.c.format.match(/[haA]/) !== null
-		},
-
-		/** Timeout when showing the control to listen for a blur */
-		showTo: null
-	};
-
-	this.dom.container
-		.append(this.dom.date)
-		.append(this.dom.time)
-		.append(this.dom.error);
-
-	this.dom.date
-		.append(this.dom.title)
-		.append(this.dom.buttons)
-		.append(this.dom.calendar);
-
-	this.dom.input.addClass('dt-datetime');
-
-	this._constructor();
-};
-
-$.extend(DateTime.prototype, {
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Public
-	 */
-
-	/**
-	 * Destroy the control
-	 */
-	destroy: function () {
-		clearTimeout(this.s.showTo);
-		this._hide(true);
-		this.dom.container.off().empty();
-		this.dom.input
-			.removeClass('dt-datetime')
-			.removeAttr('autocomplete')
-			.off('.datetime');
-	},
-
-	display: function (year, month) {
-		if (year !== undefined) {
-			this.s.display.setUTCFullYear(year);
-		}
-
-		if (month !== undefined) {
-			this.s.display.setUTCMonth(month - 1);
-		}
-
-		if (year !== undefined || month !== undefined) {
-			this._setTitle();
-			this._setCalander();
-
-			return this;
-		}
-
-		return this.s.display ?
-			{
-				month: this.s.display.getUTCMonth() + 1,
-				year: this.s.display.getUTCFullYear()
-			} : {
-				month: null,
-				year: null
-			};
-	},
-
-	errorMsg: function (msg) {
-		var error = this.dom.error;
-
-		if (msg) {
-			error.html(msg);
-		}
-		else {
-			error.empty();
-		}
-
-		return this;
-	},
-
-	hide: function () {
-		this._hide();
-
-		return this;
-	},
-
-	max: function (date) {
-		this.c.maxDate = typeof date === 'string'
-			? new Date(date)
-			: date;
-
-		this._optionsTitle();
-		this._setCalander();
-
-		return this;
-	},
-
-	min: function (date) {
-		this.c.minDate = typeof date === 'string'
-			? new Date(date)
-			: date;
-
-		this._optionsTitle();
-		this._setCalander();
-
-		return this;
-	},
-
-	/**
-	 * Check if an element belongs to this control
-	 *
-	 * @param  {node} node Element to check
-	 * @return {boolean}   true if owned by this control, false otherwise
-	 */
-	owns: function (node) {
-		return $(node).parents().filter(this.dom.container).length > 0;
-	},
-
-	/**
-	 * Get / set the value
-	 *
-	 * @param  {string|Date} set   Value to set
-	 * @param  {boolean} [write=true] Flag to indicate if the formatted value
-	 *   should be written into the input element
-	 */
-	val: function (set, write) {
-		if (set === undefined) {
-			return this.s.d;
-		}
-
-		var oldVal = this.s.d;
-
-		if (set instanceof Date) {
-			this.s.d = this._dateToUtc(set);
-		}
-		else if (set === null || set === '') {
-			this.s.d = null;
-		}
-		else if (set === '--now') {
-			this.s.d = this._dateToUtc(new Date());
-		}
-		else if (typeof set === 'string') {
-			this.s.d = this._dateToUtc(
-				this._convert(set, this.c.format, null)
-			);
-		}
-
-		if (write || write === undefined) {
-			if (this.s.d) {
-				this._writeOutput(
-					false,
-					(oldVal === null && this.s.d !== null) ||
-						(oldVal !== null && this.s.d === null) ||
-						oldVal.toString() !== this.s.d.toString()
-				);
-			}
-			else {
-				// The input value was not valid...
-				this.dom.input.val(set);
-			}
-		}
-
-		// Need something to display
-		if (this.s.d) {
-			this.s.display = new Date(this.s.d.toString());
-		}
-		else if (this.c.display) {
-			this.s.display = new Date();
-			this.s.display.setUTCDate(1);
-			this.display(this.c.display.year, this.c.display.month);
-		}
-		else {
-			this.s.display = new Date();
-		}
-
-		// Set the day of the month to be 1 so changing between months doesn't
-		// run into issues when going from day 31 to 28 (for example)
-		this.s.display.setUTCDate(1);
-
-		// Update the display elements for the new value
-		this._setTitle();
-		this._setCalander();
-		this._setTime();
-
-		return this;
-	},
-
-	/**
-	 * Similar to `val()` but uses a given date / time format
-	 *
-	 * @param format Format to get the data as (getter) or that is input (setter)
-	 * @param val Value to write (if undefined, used as a getter)
-	 * @returns 
-	 */
-	valFormat: function (format, val) {
-		if (!val) {
-			return this._convert(this.val(), null, format);
-		}
-
-		// Convert from the format given here to the instance's configured format
-		this.val(
-			this._convert(val, format, null)
-		);
-
-		return this;
-	},
-
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Constructor
-	 */
-
-	/**
-	 * Build the control and assign initial event handlers
-	 *
-	 * @private
-	 */
-	_constructor: function () {
-		var that = this;
-		var classPrefix = this.c.classPrefix;
-		var last = this.dom.input.val();
-
-		var onChange = function () {
-			var curr = that.dom.input.val();
-
-			if (curr !== last) {
-				that.c.onChange.call(that, curr, that.s.d, that.dom.input);
-				last = curr;
-			}
-		};
-
-		if (!this.s.parts.date) {
-			this.dom.date.css('display', 'none');
-		}
-
-		if (!this.s.parts.time) {
-			this.dom.time.css('display', 'none');
-		}
-
-		if (!this.s.parts.seconds) {
-			this.dom.time.children('div.' + classPrefix + '-seconds').remove();
-			this.dom.time.children('span').eq(1).remove();
-		}
-
-		if (!this.c.buttons.clear) {
-			this.dom.clear.css('display', 'none');
-		}
-
-		if (!this.c.buttons.today) {
-			this.dom.today.css('display', 'none');
-		}
-
-		if (!this.c.buttons.selected) {
-			this.dom.selected.css('display', 'none');
-		}
-
-		// Render the options
-		this._optionsTitle();
-
-		$(document).on('i18n.dt', function (e, settings) {
-			if (settings.oLanguage.datetime) {
-				$.extend(true, that.c.i18n, settings.oLanguage.datetime);
-				that._optionsTitle();
-			}
-		});
-
-		// When attached to a hidden input, we always show the input picker, and
-		// do so inline
-		if (this.dom.input.attr('type') === 'hidden' || this.c.alwaysVisible) {
-			this.dom.container.addClass('inline');
-			this.c.attachTo = 'input';
-
-			this.val(this.dom.input.val(), false);
-			this._show();
-		}
-
-		// Set the initial value
-		if (last) {
-			this.val(last, false);
-		}
-
-		// Trigger the display of the widget when clicking or focusing on the
-		// input element
-		this.dom.input
-			.attr('autocomplete', 'off')
-			.on('focus.datetime click.datetime', function () {
-				// If already visible - don't do anything
-				if (that.dom.container.is(':visible') || that.dom.input.is(':disabled')) {
-					return;
-				}
-
-				// In case the value has changed by text
-				last = that.dom.input.val();
-				that.val(last, false);
-
-				that._show();
-			})
-			.on('keyup.datetime', function () {
-				// Update the calendar's displayed value as the user types
-				that.val(that.dom.input.val(), false);
-			});
-
-		// Want to prevent the focus bubbling up the document to account for
-		// focus capture in modals (e.g. Editor and Bootstrap). They can see
-		// the focus as outside the modal and thus immediately blur focus on
-		// the picker. Need to use a native addEL since jQuery changes the
-		// focusin to focus for some reason! focusin bubbles, focus does not.
-		this.dom.container[0].addEventListener('focusin', function (e) {
-			e.stopPropagation();
-		});
-
-		// Main event handlers for input in the widget
-		this.dom.container
-			.on('change', 'select', function () {
-				var select = $(this);
-				var val = select.val();
-
-				if (select.hasClass(classPrefix + '-month')) {
-					// Month select
-					that._correctMonth(that.s.display, val);
-					that._setTitle();
-					that._setCalander();
-				}
-				else if (select.hasClass(classPrefix + '-year')) {
-					// Year select
-					that.s.display.setUTCFullYear(val);
-					that._setTitle();
-					that._setCalander();
-				}
-				else if (select.hasClass(classPrefix + '-hours') || select.hasClass(classPrefix + '-ampm')) {
-					// Hours - need to take account of AM/PM input if present
-					if (that.s.parts.hours12) {
-						var hours = $(that.dom.container).find('.' + classPrefix + '-hours').val() * 1;
-						var pm = $(that.dom.container).find('.' + classPrefix + '-ampm').val() === 'pm';
-
-						that.s.d.setUTCHours(hours === 12 && !pm ?
-							0 :
-							pm && hours !== 12 ?
-								hours + 12 :
-								hours
-						);
-					}
-					else {
-						that.s.d.setUTCHours(val);
-					}
-
-					that._setTime();
-					that._writeOutput(true);
-
-					onChange();
-				}
-				else if (select.hasClass(classPrefix + '-minutes')) {
-					// Minutes select
-					that.s.d.setUTCMinutes(val);
-					that._setTime();
-					that._writeOutput(true);
-
-					onChange();
-				}
-				else if (select.hasClass(classPrefix + '-seconds')) {
-					// Seconds select
-					that.s.d.setSeconds(val);
-					that._setTime();
-					that._writeOutput(true);
-
-					onChange();
-				}
-
-				that.dom.input.focus();
-				that._position();
-			})
-			.on('click', function (e) {
-				var d = that.s.d;
-				var nodeName = e.target.nodeName.toLowerCase();
-				var target = nodeName === 'span' ?
-					e.target.parentNode :
-					e.target;
-
-				nodeName = target.nodeName.toLowerCase();
-
-				if (nodeName === 'select') {
-					return;
-				}
-
-				e.stopPropagation();
-
-				if (nodeName === 'a') {
-					e.preventDefault();
-
-					if ($(target).hasClass(classPrefix + '-clear')) {
-						// Clear the value and don't change the display
-						that.s.d = null;
-						that.dom.input.val('');
-						that._writeOutput();
-						that._setCalander();
-						that._setTime();
-
-						onChange();
-					}
-					else if ($(target).hasClass(classPrefix + '-today')) {
-						// Don't change the value, but jump to the month
-						// containing today
-						that.s.display = new Date();
-
-						that._setTitle();
-						that._setCalander();
-					}
-					else if ($(target).hasClass(classPrefix + '-selected')) {
-						// Don't change the value, but jump to where the selected value is
-						that.s.display = new Date(that.s.d.getTime());
-
-						that._setTitle();
-						that._setCalander();
-					}
-				}
-				if (nodeName === 'button') {
-					var button = $(target);
-					var parent = button.parent();
-
-					if (parent.hasClass('disabled') && !parent.hasClass('range')) {
-						button.blur();
-						return;
-					}
-
-					if (parent.hasClass(classPrefix + '-iconLeft')) {
-						// Previous month
-						that.s.display.setUTCMonth(that.s.display.getUTCMonth() - 1);
-						that._setTitle();
-						that._setCalander();
-
-						that.dom.input.focus();
-					}
-					else if (parent.hasClass(classPrefix + '-iconRight')) {
-						// Next month
-						that._correctMonth(that.s.display, that.s.display.getUTCMonth() + 1);
-						that._setTitle();
-						that._setCalander();
-
-						that.dom.input.focus();
-					}
-					else if (button.parents('.' + classPrefix + '-time').length) {
-						var val = button.data('value');
-						var unit = button.data('unit');
-
-						d = that._needValue();
-
-						if (unit === 'minutes') {
-							if (parent.hasClass('disabled') && parent.hasClass('range')) {
-								that.s.minutesRange = val;
-								that._setTime();
-								return;
-							}
-							else {
-								that.s.minutesRange = null;
-							}
-						}
-
-						if (unit === 'seconds') {
-							if (parent.hasClass('disabled') && parent.hasClass('range')) {
-								that.s.secondsRange = val;
-								that._setTime();
-								return;
-							}
-							else {
-								that.s.secondsRange = null;
-							}
-						}
-
-						// Specific to hours for 12h clock
-						if (val === 'am') {
-							if (d.getUTCHours() >= 12) {
-								val = d.getUTCHours() - 12;
-							}
-							else {
-								return;
-							}
-						}
-						else if (val === 'pm') {
-							if (d.getUTCHours() < 12) {
-								val = d.getUTCHours() + 12;
-							}
-							else {
-								return;
-							}
-						}
-
-						var set = unit === 'hours' ?
-							'setUTCHours' :
-							unit === 'minutes' ?
-								'setUTCMinutes' :
-								'setSeconds';
-
-						d[set](val);
-						that._setCalander();
-						that._setTime();
-						that._writeOutput(true);
-						onChange();
-					}
-					else {
-						// Calendar click
-						d = that._needValue();
-
-						// Can't be certain that the current day will exist in
-						// the new month, and likewise don't know that the
-						// new day will exist in the old month, But 1 always
-						// does, so we can change the month without worry of a
-						// recalculation being done automatically by `Date`
-						d.setUTCDate(1);
-						d.setUTCFullYear(button.data('year'));
-						d.setUTCMonth(button.data('month'));
-						d.setUTCDate(button.data('day'));
-
-						that._writeOutput(true);
-
-						// Don't hide if there is a time picker, since we want to
-						// be able to select a time as well.
-						if (!that.s.parts.time) {
-							// This is annoying but IE has some kind of async
-							// behaviour with focus and the focus from the above
-							// write would occur after this hide - resulting in the
-							// calendar opening immediately
-							setTimeout(function () {
-								that._hide();
-							}, 10);
-						}
-						else {
-							that._setCalander();
-							that._setTime();
-						}
-
-						onChange();
-					}
-				}
-				else {
-					// Click anywhere else in the widget - return focus to the
-					// input element
-					that.dom.input.focus();
-				}
-			});
-	},
-
-
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Private
-	 */
-
-	/**
-	 * Compare the date part only of two dates - this is made super easy by the
-	 * toDateString method!
-	 *
-	 * @param  {Date} a Date 1
-	 * @param  {Date} b Date 2
-	 * @private
-	 */
-	_compareDates: function (a, b) {
-		// Can't use toDateString as that converts to local time
-		// luxon uses different method names so need to be able to call them
-		return this._isLuxon()
-			? dateLib.DateTime.fromJSDate(a).toUTC().toISODate() === dateLib.DateTime.fromJSDate(b).toUTC().toISODate()
-			: this._dateToUtcString(a) === this._dateToUtcString(b);
-	},
-
-	/**
-	 * Convert from one format to another
-	 *
-	 * @param {string|Date} val Value 
-	 * @param {string|null} from Format to convert from. If null a `Date` must be given
-	 * @param {string|null} to Format to convert to. If null a `Date` will be returned
-	 * @returns {string|Date} Converted value
-	 */
-	_convert: function (val, from, to) {
-		if (!val) {
-			return val;
-		}
-
-		if (!dateLib) {
-			// Note that in here from and to can either be null or YYYY-MM-DD
-			// They cannot be anything else
-			if ((!from && !to) || (from && to)) {
-				// No conversion
-				return val;
-			}
-			else if (!from) {
-				// Date in, string back
-				return val.getUTCFullYear() + '-' +
-					this._pad(val.getUTCMonth() + 1) + '-' +
-					this._pad(val.getUTCDate());
-			}
-			else { // (! to)
-				// String in, date back
-				var match = val.match(/(\d{4})\-(\d{2})\-(\d{2})/);
-				return match ?
-					new Date(match[1], match[2] - 1, match[3]) :
-					null;
-			}
-		}
-		else if (this._isLuxon()) {
-			// Luxon
-			var dtLux = val instanceof Date
-				? dateLib.DateTime.fromJSDate(val).toUTC()
-				: dateLib.DateTime.fromFormat(val, from);
-
-			if (!dtLux.isValid) {
-				return null;
-			}
-
-			return to
-				? dtLux.toFormat(to)
-				: dtLux.toJSDate();
-		}
-		else {
-			// Moment / DayJS
-			var dtMo = val instanceof Date
-				? dateLib.utc(val, undefined, this.c.locale, this.c.strict)
-				: dateLib(val, from, this.c.locale, this.c.strict);
-
-			if (!dtMo.isValid()) {
-				return null;
-			}
-
-			return to
-				? dtMo.format(to)
-				: dtMo.toDate();
-		}
-	},
-
-	/**
-	 * When changing month, take account of the fact that some months don't have
-	 * the same number of days. For example going from January to February you
-	 * can have the 31st of Jan selected and just add a month since the date
-	 * would still be 31, and thus drop you into March.
-	 *
-	 * @param  {Date} date  Date - will be modified
-	 * @param  {integer} month Month to set
-	 * @private
-	 */
-	_correctMonth: function (date, month) {
-		var days = this._daysInMonth(date.getUTCFullYear(), month);
-		var correctDays = date.getUTCDate() > days;
-
-		date.setUTCMonth(month);
-
-		if (correctDays) {
-			date.setUTCDate(days);
-			date.setUTCMonth(month);
-		}
-	},
-
-	/**
-	 * Get the number of days in a method. Based on
-	 * http://stackoverflow.com/a/4881951 by Matti Virkkunen
-	 *
-	 * @param  {integer} year  Year
-	 * @param  {integer} month Month (starting at 0)
-	 * @private
-	 */
-	_daysInMonth: function (year, month) {
-		// 
-		var isLeap = ((year % 4) === 0 && ((year % 100) !== 0 || (year % 400) === 0));
-		var months = [31, (isLeap ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-		return months[month];
-	},
-
-	/**
-	 * Create a new date object which has the UTC values set to the local time.
-	 * This allows the local time to be used directly for the library which
-	 * always bases its calculations and display on UTC.
-	 *
-	 * @param  {Date} s Date to "convert"
-	 * @return {Date}   Shifted date
-	 */
-	_dateToUtc: function (s) {
-		if (!s) {
-			return s;
-		}
-
-		return new Date(Date.UTC(
-			s.getFullYear(), s.getMonth(), s.getDate(),
-			s.getHours(), s.getMinutes(), s.getSeconds()
-		));
-	},
-
-	/**
-	 * Create a UTC ISO8601 date part from a date object
-	 *
-	 * @param  {Date} d Date to "convert"
-	 * @return {string} ISO formatted date
-	 */
-	_dateToUtcString: function (d) {
-		// luxon uses different method names so need to be able to call them
-		return this._isLuxon()
-			? dateLib.DateTime.fromJSDate(d).toUTC().toISODate()
-			: d.getUTCFullYear() + '-' +
-			this._pad(d.getUTCMonth() + 1) + '-' +
-			this._pad(d.getUTCDate());
-	},
-
-	/**
-	 * Hide the control and remove events related to its display
-	 *
-	 * @private
-	 */
-	_hide: function (destroy) {
-		if (!destroy && (this.dom.input.attr('type') === 'hidden' || this.c.alwaysVisible)) {
-			// Normally we wouldn't need to redraw the calander if it changes
-			// and then hides, but if it is hidden, then we do need to make sure
-			// that it is correctly up to date.
-			this._setCalander();
-			this._setTime();
-
-			return;
-		}
-
-		var namespace = this.s.namespace;
-
-		this.dom.container.detach();
-
-		$(window).off('.' + namespace);
-		$(document)
-			.off('keydown.' + namespace)
-			.off('keyup.' + namespace)
-			.off('click.' + namespace);
-		$('div.dataTables_scrollBody').off('scroll.' + namespace);
-		$('div.DTE_Body_Content').off('scroll.' + namespace);
-		$(this.dom.input[0].offsetParent).off('.' + namespace);
-	},
-
-	/**
-	 * Convert a 24 hour value to a 12 hour value
-	 *
-	 * @param  {integer} val 24 hour value
-	 * @return {integer}     12 hour value
-	 * @private
-	 */
-	_hours24To12: function (val) {
-		return val === 0 ?
-			12 :
-			val > 12 ?
-				val - 12 :
-				val;
-	},
-
-	/**
-	 * Generate the HTML for a single day in the calendar - this is basically
-	 * and HTML cell with a button that has data attributes so we know what was
-	 * clicked on (if it is clicked on) and a bunch of classes for styling.
-	 *
-	 * @param  {object} day Day object from the `_htmlMonth` method
-	 * @return {string}     HTML cell
-	 */
-	_htmlDay: function (day) {
-		var classPrefix = this.c.classPrefix;
-		if (day.empty) {
-			return '<td class="' + classPrefix + '-empty"></td>';
-		}
-
-		var classes = ['selectable'];
-
-		if (day.disabled) {
-			classes.push('disabled');
-		}
-
-		if (day.today) {
-			classes.push('now');
-		}
-
-		if (day.selected) {
-			classes.push('selected');
-		}
-
-		return '<td data-day="' + day.day + '" class="' + classes.join(' ') + '">' +
-			'<button class="' + classPrefix + '-button ' + classPrefix + '-day" type="button" ' + 'data-year="' + day.year + '" data-month="' + day.month + '" data-day="' + day.day + '">' +
-			'<span>' + day.day + '</span>' +
-			'</button>' +
-			'</td>';
-	},
-
-
-	/**
-	 * Create the HTML for a month to be displayed in the calendar table.
-	 * 
-	 * Based upon the logic used in Pikaday - MIT licensed
-	 * Copyright (c) 2014 David Bushell
-	 * https://github.com/dbushell/Pikaday
-	 *
-	 * @param  {integer} year  Year
-	 * @param  {integer} month Month (starting at 0)
-	 * @return {string} Calendar month HTML
-	 * @private
-	 */
-	_htmlMonth: function (year, month) {
-		var now = this._dateToUtc(new Date()),
-			days = this._daysInMonth(year, month),
-			before = new Date(Date.UTC(year, month, 1)).getUTCDay(),
-			data = [],
-			row = [];
-
-		if (this.c.firstDay > 0) {
-			before -= this.c.firstDay;
-
-			if (before < 0) {
-				before += 7;
-			}
-		}
-
-		var cells = days + before,
-			after = cells;
-
-		while (after > 7) {
-			after -= 7;
-		}
-
-		cells += 7 - after;
-
-		var minDate = this.c.minDate;
-		var maxDate = this.c.maxDate;
-
-		if (minDate) {
-			minDate.setUTCHours(0);
-			minDate.setUTCMinutes(0);
-			minDate.setSeconds(0);
-		}
-
-		if (maxDate) {
-			maxDate.setUTCHours(23);
-			maxDate.setUTCMinutes(59);
-			maxDate.setSeconds(59);
-		}
-
-		for (var i = 0, r = 0; i < cells; i++) {
-			var day = new Date(Date.UTC(year, month, 1 + (i - before))),
-				selected = this.s.d ? this._compareDates(day, this.s.d) : false,
-				today = this._compareDates(day, now),
-				empty = i < before || i >= (days + before),
-				disabled = (minDate && day < minDate) ||
-					(maxDate && day > maxDate);
-
-			var disableDays = this.c.disableDays;
-			if (Array.isArray(disableDays) && $.inArray(day.getUTCDay(), disableDays) !== -1) {
-				disabled = true;
-			}
-			else if (typeof disableDays === 'function' && disableDays(day) === true) {
-				disabled = true;
-			}
-
-			var dayConfig = {
-				day: 1 + (i - before),
-				month: month,
-				year: year,
-				selected: selected,
-				today: today,
-				disabled: disabled,
-				empty: empty
-			};
-
-			row.push(this._htmlDay(dayConfig));
-
-			if (++r === 7) {
-				if (this.c.showWeekNumber) {
-					row.unshift(this._htmlWeekOfYear(i - before, month, year));
-				}
-
-				data.push('<tr>' + row.join('') + '</tr>');
-				row = [];
-				r = 0;
-			}
-		}
-
-		var classPrefix = this.c.classPrefix;
-		var className = classPrefix + '-table';
-		if (this.c.showWeekNumber) {
-			className += ' weekNumber';
-		}
-
-		// Show / hide month icons based on min/max
-		if (minDate) {
-			var underMin = minDate >= new Date(Date.UTC(year, month, 1, 0, 0, 0));
-
-			this.dom.title.find('div.' + classPrefix + '-iconLeft')
-				.css('display', underMin ? 'none' : 'block');
-		}
-
-		if (maxDate) {
-			var overMax = maxDate < new Date(Date.UTC(year, month + 1, 1, 0, 0, 0));
-
-			this.dom.title.find('div.' + classPrefix + '-iconRight')
-				.css('display', overMax ? 'none' : 'block');
-		}
-
-		return '<table class="' + className + '">' +
-			'<thead>' +
-			this._htmlMonthHead() +
-			'</thead>' +
-			'<tbody>' +
-			data.join('') +
-			'</tbody>' +
-			'</table>';
-	},
-
-	/**
-	 * Create the calendar table's header (week days)
-	 *
-	 * @return {string} HTML cells for the row
-	 * @private
-	 */
-	_htmlMonthHead: function () {
-		var a = [];
-		var firstDay = this.c.firstDay;
-		var i18n = this.c.i18n;
-
-		// Take account of the first day shift
-		var dayName = function (day) {
-			day += firstDay;
-
-			while (day >= 7) {
-				day -= 7;
-			}
-
-			return i18n.weekdays[day];
-		};
-
-		// Empty cell in the header
-		if (this.c.showWeekNumber) {
-			a.push('<th></th>');
-		}
-
-		for (var i = 0; i < 7; i++) {
-			a.push('<th>' + dayName(i) + '</th>');
-		}
-
-		return a.join('');
-	},
-
-	/**
-	 * Create a cell that contains week of the year - ISO8601
-	 *
-	 * Based on https://stackoverflow.com/questions/6117814/ and
-	 * http://techblog.procurios.nl/k/n618/news/view/33796/14863/
-	 *
-	 * @param  {integer} d Day of month
-	 * @param  {integer} m Month of year (zero index)
-	 * @param  {integer} y Year
-	 * @return {string}   
-	 * @private
-	 */
-	_htmlWeekOfYear: function (d, m, y) {
-		var date = new Date(y, m, d, 0, 0, 0, 0);
-
-		// First week of the year always has 4th January in it
-		date.setDate(date.getDate() + 4 - (date.getDay() || 7));
-
-		var oneJan = new Date(y, 0, 1);
-		var weekNum = Math.ceil((((date - oneJan) / 86400000) + 1) / 7);
-
-		return '<td class="' + this.c.classPrefix + '-week">' + weekNum + '</td>';
-	},
-
-	/**
-	 * Determine if Luxon is being used
-	 *
-	 * @returns Flag for Luxon
-	 */
-	_isLuxon: function () {
-		return dateLib && dateLib.DateTime && dateLib.Duration && dateLib.Settings
-			? true
-			: false;
-	},
-
-	/**
-	 * Check if the instance has a date object value - it might be null.
-	 * If is doesn't set one to now.
-	 * @returns A Date object
-	 * @private
-	 */
-	_needValue: function () {
-		if (!this.s.d) {
-			this.s.d = this._dateToUtc(new Date());
-
-			if (!this.s.parts.time) {
-				this.s.d.setUTCHours(0);
-				this.s.d.setUTCMinutes(0);
-				this.s.d.setSeconds(0);
-				this.s.d.setMilliseconds(0);
-			}
-		}
-
-		return this.s.d;
-	},
-
-	/**
-	 * Create option elements from a range in an array
-	 *
-	 * @param  {string} selector Class name unique to the select element to use
-	 * @param  {array} values   Array of values
-	 * @param  {array} [labels] Array of labels. If given must be the same
-	 *   length as the values parameter.
-	 * @private
-	 */
-	_options: function (selector, values, labels) {
-		if (!labels) {
-			labels = values;
-		}
-
-		var select = this.dom.container.find('select.' + this.c.classPrefix + '-' + selector);
-		select.empty();
-
-		for (var i = 0, ien = values.length; i < ien; i++) {
-			select.append('<option value="' + values[i] + '">' + labels[i] + '</option>');
-		}
-	},
-
-	/**
-	 * Set an option and update the option's span pair (since the select element
-	 * has opacity 0 for styling)
-	 *
-	 * @param  {string} selector Class name unique to the select element to use
-	 * @param  {*}      val      Value to set
-	 * @private
-	 */
-	_optionSet: function (selector, val) {
-		var select = this.dom.container.find('select.' + this.c.classPrefix + '-' + selector);
-		var span = select.parent().children('span');
-
-		select.val(val);
-
-		var selected = select.find('option:selected');
-		span.html(selected.length !== 0 ?
-			selected.text() :
-			this.c.i18n.unknown
-		);
-	},
-
-	/**
-	 * Create time options list.
-	 *
-	 * @param  {string} unit Time unit - hours, minutes or seconds
-	 * @param  {integer} count Count range - 12, 24 or 60
-	 * @param  {integer} val Existing value for this unit
-	 * @param  {integer[]} allowed Values allow for selection
-	 * @param  {integer} range Override range
-	 * @private
-	 */
-	_optionsTime: function (unit, count, val, allowed, range) {
-		var classPrefix = this.c.classPrefix;
-		var container = this.dom.container.find('div.' + classPrefix + '-' + unit);
-		var i, j;
-		var render = count === 12 ?
-			function (i) { return i; } :
-			this._pad;
-		var className = classPrefix + '-table';
-		var i18n = this.c.i18n;
-
-		if (!container.length) {
-			return;
-		}
-
-		var a = '';
-		var span = 10;
-		var button = function (value, label, className) {
-			// Shift the value for PM
-			if (count === 12 && typeof value === 'number') {
-				if (val >= 12) {
-					value += 12;
-				}
-
-				if (value == 12) {
-					value = 0;
-				}
-				else if (value == 24) {
-					value = 12;
-				}
-			}
-
-			var selected = val === value || (value === 'am' && val < 12) || (value === 'pm' && val >= 12) ?
-				'selected' :
-				'';
-
-			if (typeof value === 'number' && allowed && $.inArray(value, allowed) === -1) {
-				selected += ' disabled';
-			}
-
-			if (className) {
-				selected += ' ' + className;
-			}
-
-			return '<td class="selectable ' + selected + '">' +
-				'<button class="' + classPrefix + '-button ' + classPrefix + '-day" type="button" data-unit="' + unit + '" data-value="' + value + '">' +
-				'<span>' + label + '</span>' +
-				'</button>' +
-				'</td>';
-		}
-
-		if (count === 12) {
-			// Hours with AM/PM
-			a += '<tr>';
-
-			for (i = 1; i <= 6; i++) {
-				a += button(i, render(i));
-			}
-			a += button('am', i18n.amPm[0]);
-
-			a += '</tr>';
-			a += '<tr>';
-
-			for (i = 7; i <= 12; i++) {
-				a += button(i, render(i));
-			}
-			a += button('pm', i18n.amPm[1]);
-			a += '</tr>';
-
-			span = 7;
-		}
-		else if (count === 24) {
-			// Hours - 24
-			var c = 0;
-			for (j = 0; j < 4; j++) {
-				a += '<tr>';
-				for (i = 0; i < 6; i++) {
-					a += button(c, render(c));
-					c++;
-				}
-				a += '</tr>';
-			}
-
-			span = 6;
-		}
-		else {
-			// Minutes and seconds
-			a += '<tr>';
-			for (j = 0; j < 60; j += 10) {
-				a += button(j, render(j), 'range');
-			}
-			a += '</tr>';
-
-			// Slight hack to allow for the different number of columns
-			a += '</tbody></thead><table class="' + className + ' ' + className + '-nospace"><tbody>';
-
-			var start = range !== null
-				? range
-				: val === -1
-					? 0
-					: Math.floor(val / 10) * 10;
-
-			a += '<tr>';
-			for (j = start + 1; j < start + 10; j++) {
-				a += button(j, render(j));
-			}
-			a += '</tr>';
-
-			span = 6;
-		}
-
-		container
-			.empty()
-			.append(
-				'<table class="' + className + '">' +
-				'<thead><tr><th colspan="' + span + '">' +
-				i18n[unit] +
-				'</th></tr></thead>' +
-				'<tbody>' +
-				a +
-				'</tbody>' +
-				'</table>'
-			);
-	},
-
-	/**
-	 * Create the options for the month and year
-	 *
-	 * @param  {integer} year  Year
-	 * @param  {integer} month Month (starting at 0)
-	 * @private
-	 */
-	_optionsTitle: function () {
-		var i18n = this.c.i18n;
-		var min = this.c.minDate;
-		var max = this.c.maxDate;
-		var minYear = min ? min.getFullYear() : null;
-		var maxYear = max ? max.getFullYear() : null;
-
-		var i = minYear !== null ? minYear : new Date().getFullYear() - this.c.yearRange;
-		var j = maxYear !== null ? maxYear : new Date().getFullYear() + this.c.yearRange;
-
-		this._options('month', this._range(0, 11), i18n.months);
-		this._options('year', this._range(i, j));
-
-		// Set the language strings in case any have changed
-		this.dom.today.text(i18n.today).text(i18n.today);
-		this.dom.selected.text(i18n.selected).text(i18n.selected);
-		this.dom.clear.text(i18n.clear).text(i18n.clear);
-		this.dom.previous
-			.attr('title', i18n.previous)
-			.children('button')
-			.text(i18n.previous);
-		this.dom.next
-			.attr('title', i18n.next)
-			.children('button')
-			.text(i18n.next);
-	},
-
-	/**
-	 * Simple two digit pad
-	 *
-	 * @param  {integer} i      Value that might need padding
-	 * @return {string|integer} Padded value
-	 * @private
-	 */
-	_pad: function (i) {
-		return i < 10 ? '0' + i : i;
-	},
-
-	/**
-	 * Position the calendar to look attached to the input element
-	 * @private
-	 */
-	_position: function () {
-		var offset = this.c.attachTo === 'input' ? this.dom.input.position() : this.dom.input.offset();
-		var container = this.dom.container;
-		var inputHeight = this.dom.input.outerHeight();
-
-		if (container.hasClass('inline')) {
-			container.insertAfter(this.dom.input);
-			return;
-		}
-
-		if (this.s.parts.date && this.s.parts.time && $(window).width() > 550) {
-			container.addClass('horizontal');
-		}
-		else {
-			container.removeClass('horizontal');
-		}
-
-		if (this.c.attachTo === 'input') {
-			container
-				.css({
-					top: offset.top + inputHeight,
-					left: offset.left
-				})
-				.insertAfter(this.dom.input);
-		}
-		else {
-			container
-				.css({
-					top: offset.top + inputHeight,
-					left: offset.left
-				})
-				.appendTo('body');
-		}
-
-		var calHeight = container.outerHeight();
-		var calWidth = container.outerWidth();
-		var scrollTop = $(window).scrollTop();
-
-		// Correct to the bottom
-		if (offset.top + inputHeight + calHeight - scrollTop > $(window).height()) {
-			var newTop = offset.top - calHeight;
-
-			container.css('top', newTop < 0 ? 0 : newTop);
-		}
-
-		// Correct to the right
-		if (calWidth + offset.left > $(window).width()) {
-			var newLeft = $(window).width() - calWidth - 5;
-
-			// Account for elements which are inside a position absolute element
-			if (this.c.attachTo === 'input') {
-				newLeft -= $(container).offsetParent().offset().left;
-			}
-
-			container.css('left', newLeft < 0 ? 0 : newLeft);
-		}
-	},
-
-	/**
-	 * Create a simple array with a range of values
-	 *
-	 * @param  {integer} start   Start value (inclusive)
-	 * @param  {integer} end     End value (inclusive)
-	 * @param  {integer} [inc=1] Increment value
-	 * @return {array}           Created array
-	 * @private
-	 */
-	_range: function (start, end, inc) {
-		var a = [];
-
-		if (!inc) {
-			inc = 1;
-		}
-
-		for (var i = start; i <= end; i += inc) {
-			a.push(i);
-		}
-
-		return a;
-	},
-
-	/**
-	 * Redraw the calendar based on the display date - this is a destructive
-	 * operation
-	 *
-	 * @private
-	 */
-	_setCalander: function () {
-		if (this.s.display) {
-			this.dom.calendar
-				.empty()
-				.append(this._htmlMonth(
-					this.s.display.getUTCFullYear(),
-					this.s.display.getUTCMonth()
-				));
-		}
-	},
-
-	/**
-	 * Set the month and year for the calendar based on the current display date
-	 *
-	 * @private
-	 */
-	_setTitle: function () {
-		this._optionSet('month', this.s.display.getUTCMonth());
-		this._optionSet('year', this.s.display.getUTCFullYear());
-	},
-
-	/**
-	 * Set the time based on the current value of the widget
-	 *
-	 * @private
-	 */
-	_setTime: function () {
-		var that = this;
-		var d = this.s.d;
-
-		// luxon uses different method names so need to be able to call them. This happens a few time later in this method too
-		var luxDT = null
-		if (this._isLuxon()) {
-			luxDT = dateLib.DateTime.fromJSDate(d).toUTC();
-		}
-
-		var hours = luxDT != null
-			? luxDT.hour
-			: d
-				? d.getUTCHours()
-				: -1;
-
-		var allowed = function (prop) { // Backwards compt with `Increment` option
-			return that.c[prop + 'Available'] ?
-				that.c[prop + 'Available'] :
-				that._range(0, 59, that.c[prop + 'Increment']);
-		}
-
-		this._optionsTime('hours', this.s.parts.hours12 ? 12 : 24, hours, this.c.hoursAvailable)
-		this._optionsTime(
-			'minutes',
-			60,
-			luxDT != null
-				? luxDT.minute
-				: d
-					? d.getUTCMinutes()
-					: -1,
-			allowed('minutes'),
-			this.s.minutesRange
-		);
-		this._optionsTime(
-			'seconds',
-			60,
-			luxDT != null
-				? luxDT.second
-				: d
-					? d.getSeconds()
-					: -1,
-			allowed('seconds'),
-			this.s.secondsRange
-		);
-	},
-
-	/**
-	 * Show the widget and add events to the document required only while it
-	 * is displayed
-	 * 
-	 * @private
-	 */
-	_show: function () {
-		var that = this;
-		var namespace = this.s.namespace;
-
-		this._position();
-
-		// Need to reposition on scroll
-		$(window).on('scroll.' + namespace + ' resize.' + namespace, function () {
-			that._position();
-		});
-
-		$('div.DTE_Body_Content').on('scroll.' + namespace, function () {
-			that._position();
-		});
-
-		$('div.dataTables_scrollBody').on('scroll.' + namespace, function () {
-			that._position();
-		});
-
-		var offsetParent = this.dom.input[0].offsetParent;
-
-		if (offsetParent !== document.body) {
-			$(offsetParent).on('scroll.' + namespace, function () {
-				that._position();
-			});
-		}
-
-		// On tab focus will move to a different field (no keyboard navigation
-		// in the date picker - this might need to be changed).
-		$(document).on('keydown.' + namespace, function (e) {
-			if (
-				that.dom.container.is(':visible') && (
-					e.keyCode === 9 || // tab
-					e.keyCode === 13    // return
-				)
-			) {
-				that._hide();
-			}
-		});
-
-		// Esc is on keyup to allow Editor to know that the container was hidden and thus
-		// not act on the esc itself.
-		$(document).on('keyup.' + namespace, function (e) {
-			if (that.dom.container.is(':visible') && e.keyCode === 27 ) { // esc
-				e.preventDefault();
-				that._hide();
-			}
-		});
-
-		clearTimeout(this.s.showTo);
-
-		// We can't use blur to hide, as we want to keep the picker open while
-		// to let the user select from it. But if focus is moved outside of of
-		// the picker, then we auto hide.
-		this.dom.input.on('blur', function (e) {
-			that.s.showTo = setTimeout(function () {
-				let name = document.activeElement.tagName.toLowerCase();
-
-				if (document.activeElement === that.dom.input[0]) {
-					return;
-				}
-
-				if (that.dom.container.find(document.activeElement).length) {
-					return;
-				}
-
-				if (['input', 'select', 'button'].includes(name)) {
-					that.hide();
-				}
-			}, 10);
-		});
-
-		// Hide if clicking outside of the widget - but in a different click
-		// event from the one that was used to trigger the show (bubble and
-		// inline)
-		setTimeout(function () {
-			$(document).on('click.' + namespace, function (e) {
-				var parents = $(e.target).parents();
-
-				if (!parents.filter(that.dom.container).length && e.target !== that.dom.input[0]) {
-					that._hide();
-				}
-			});
-		}, 10);
-	},
-
-	/**
-	 * Write the formatted string to the input element this control is attached
-	 * to
-	 *
-	 * @private
-	 */
-	_writeOutput: function (focus, change) {
-		var date = this.s.d;
-		var out = '';
-		var input = this.dom.input;
-
-		if (date) {
-			out = this._convert(date, null, this.c.format);
-		}
-
-		input.val(out);
-
-		if (change === undefined || change) {
-			// Create a DOM synthetic event. Can't use $().trigger() as
-			// that doesn't actually trigger non-jQuery event listeners
-			var event = new Event('change', { bubbles: true });
-			input[0].dispatchEvent(event);
-		}
-
-		if (input.attr('type') === 'hidden') {
-			this.val(out, false);
-		}
-
-		if (focus) {
-			input.focus();
-		}
-	}
-});
-
-/**
- * Use a specificmoment compatible date library
- */
-DateTime.use = function (lib) {
-	dateLib = lib;
-};
-
-/**
- * For generating unique namespaces
- *
- * @type {Number}
- * @private
- */
-DateTime._instance = 0;
-
-/**
- * To indicate to DataTables what type of library this is
- */
-DateTime.type = 'DateTime';
-
-/**
- * Defaults for the date time picker
- *
- * @type {Object}
- */
-DateTime.defaults = {
-	alwaysVisible: false,
-
-	attachTo: 'body',
-
-	buttons: {
-		clear: false,
-		selected: false,
-		today: false
-	},
-
-	// Not documented - could be an internal property
-	classPrefix: 'dt-datetime',
-
-	// function or array of ints
-	disableDays: null,
-
-	// first day of the week (0: Sunday, 1: Monday, etc)
-	firstDay: 1,
-
-	format: 'YYYY-MM-DD',
-
-	hoursAvailable: null,
-
-	i18n: {
-		clear: 'Clear',
-		previous: 'Previous',
-		next: 'Next',
-		months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-		weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-		amPm: ['am', 'pm'],
-		hours: 'Hour',
-		minutes: 'Minute',
-		seconds: 'Second',
-		unknown: '-',
-		today: 'Today',
-		selected: 'Selected'
-	},
-
-	maxDate: null,
-
-	minDate: null,
-
-	minutesAvailable: null,
-
-	minutesIncrement: 1, // deprecated
-
-	strict: true,
-
-	locale: 'en',
-
-	onChange: function () { },
-
-	secondsAvailable: null,
-
-	secondsIncrement: 1, // deprecated
-
-	// show the ISO week number at the head of the row
-	showWeekNumber: false,
-
-	// overruled by max / min date
-	yearRange: 25
-};
-
-DateTime.version = '1.6.3';
-
-/**
- * CommonJS factory function pass through. Matches DataTables.
- * @param {*} root Window
- * @param {*} jq jQUery
- * @returns {boolean} Indicator
- */
-DateTime.factory = function (root, jq) {
-	var is = false;
-
-	// Test if the first parameter is a window object
-	if (root && root.document) {
-		window = root;
-		document = root.document;
-	}
-
-	// Test if the second parameter is a jQuery object
-	if (jq && jq.fn && jq.fn.jquery) {
-		$ = jq;
-		is = true;
-	}
-
-	return is;
-}
-
-// Global export - if no conflicts
-if (!window.DateTime) {
-	window.DateTime = DateTime;
-}
-
-// Global DataTable
-if (window.DataTable) {
-	window.DataTable.DateTime = DateTime;
-	DataTable.use('datetime', DateTime);
-}
-
-// Make available via jQuery
-$.fn.dtDateTime = function (options) {
-	return this.each(function () {
-		new DateTime(this, options);
-	});
-}
-
-// Attach to DataTables if present
-if ($.fn.dataTable) {
-	$.fn.dataTable.DateTime = DateTime;
-	$.fn.DataTable.DateTime = DateTime;
-
-	if ($.fn.dataTable.Editor) {
-		$.fn.dataTable.Editor.DateTime = DateTime;
-	}
-}
-
-
-return DateTime;
-}));
-
-
 /*! FixedColumns 5.0.5
  * © SpryMedia Ltd - datatables.net/license
  */
@@ -19748,7 +17910,7 @@ return DataTable;
 }));
 
 
-/*! FixedHeader 4.0.5
+/*! FixedHeader 4.0.6
  * © SpryMedia Ltd - datatables.net/license
  */
 
@@ -19803,7 +17965,7 @@ var DataTable = $.fn.dataTable;
  * @summary     FixedHeader
  * @description Fix a table's header or footer, so it is always visible while
  *              scrolling
- * @version     4.0.5
+ * @version     4.0.6
  * @author      SpryMedia Ltd
  * @contact     datatables.net
  *
@@ -19936,6 +18098,7 @@ $.extend(FixedHeader.prototype, {
 		var dom = this.dom;
 
 		this.s.dt.off('.dtfc');
+		$('body').off('.dtfc');
 		$(window).off(this.s.namespace);
 
 		// Remove clones of FC blockers
@@ -20085,7 +18248,9 @@ $.extend(FixedHeader.prototype, {
 			function (e, ctx) {
 				that.update();
 			}
-		).on('draw.dt.dtfc', function (e, ctx) {
+		);
+		
+		$('body').on('draw.dt.dtfc', function (e, ctx) {
 			// For updates from our own table, don't reclone, but for all others, do
 			that.update(ctx === dt.settings()[0] ? false : true);
 		});
@@ -20230,9 +18395,17 @@ $.extend(FixedHeader.prototype, {
 			itemDom.placeholder = itemElement.clone(false);
 			itemDom.placeholder.find('*[id]').removeAttr('id');
 
-			// Move the thead / tfoot elements around - original into the floating
-			// element and clone into the original table
-			itemDom.host.prepend(itemDom.placeholder);
+			// Move the thead / tfoot elements around - original into the
+			// floating element and clone into the original table. Note that the
+			// order is important in Chrome. It must be colgroup, thead, tbody,
+			// tfoot. Otherwise a "jitter" when scrolling will occur.
+			$(itemDom.placeholder).insertAfter(
+				item === 'header'
+					? $('colgroup', itemDom.host)
+					: $('tbody', itemDom.host)
+			);
+
+			// itemDom.host.prepend(itemDom.placeholder);
 			itemDom.floating.append(itemElement);
 
 			this._widths(itemDom);
@@ -20355,7 +18528,7 @@ $.extend(FixedHeader.prototype, {
 
 			if (!$.contains(itemDom.host[0], tablePart[0])) {
 				if (item === 'header') {
-					itemDom.host.prepend(tablePart);
+					tablePart.insertAfter($('colgroup', itemDom.host));
 				}
 				else {
 					itemDom.host.append(tablePart);
@@ -20846,7 +19019,7 @@ $.extend(FixedHeader.prototype, {
  * @type {String}
  * @static
  */
-FixedHeader.version = '4.0.5';
+FixedHeader.version = '4.0.6';
 
 /**
  * Defaults
@@ -20951,6 +19124,1438 @@ $.each(['header', 'footer'], function (i, el) {
 			}
 		});
 	});
+});
+
+
+return DataTable;
+}));
+
+
+/*! KeyTable 2.12.2
+ * © SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+
+/**
+ * @summary     KeyTable
+ * @description Spreadsheet like keyboard navigation for DataTables
+ * @version     2.12.2
+ * @file        dataTables.keyTable.js
+ * @author      SpryMedia Ltd
+ * @contact     datatables.net
+ * @copyright   Copyright SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+var namespaceCounter = 0;
+var editorNamespaceCounter = 0;
+
+var KeyTable = function (dt, opts) {
+	// Sanity check that we are using DataTables 1.10 or newer
+	if (!DataTable.versionCheck || !DataTable.versionCheck('1.10.8')) {
+		throw 'KeyTable requires DataTables 1.10.8 or newer';
+	}
+
+	// User and defaults configuration object
+	this.c = $.extend(true, {}, DataTable.defaults.keyTable, KeyTable.defaults, opts);
+
+	// Internal settings
+	this.s = {
+		/** @type {DataTable.Api} DataTables' API instance */
+		dt: new DataTable.Api(dt),
+
+		/** Indicate when the DataTable is redrawing - take no action on key presses */
+		dtDrawing: false,
+
+		enable: true,
+
+		/** @type {bool} Flag for if a draw is triggered by focus */
+		focusDraw: false,
+
+		/** @type {bool} Flag to indicate when waiting for a draw to happen.
+		 *   Will ignore key presses at this point
+		 */
+		waitingForDraw: false,
+
+		/** @type {object} Information about the last cell that was focused */
+		lastFocus: null,
+
+		/** @type {string} Unique namespace per instance */
+		namespace: '.keyTable-' + namespaceCounter++,
+
+		/** @type {Node} Input element for tabbing into the table */
+		tabInput: null
+	};
+
+	// DOM items
+	this.dom = {};
+
+	// Check if row reorder has already been initialised on this table
+	var settings = this.s.dt.settings()[0];
+	var exisiting = settings.keytable;
+	if (exisiting) {
+		return exisiting;
+	}
+
+	settings.keytable = this;
+	this._constructor();
+};
+
+$.extend(KeyTable.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * API methods for DataTables API interface
+	 */
+
+	/**
+	 * Blur the table's cell focus
+	 */
+	blur: function () {
+		this._blur();
+	},
+
+	/**
+	 * Enable cell focus for the table
+	 *
+	 * @param  {string} state Can be `true`, `false` or `-string navigation-only`
+	 */
+	enable: function (state) {
+		this.s.enable = state;
+	},
+
+	/**
+	 * Get enable status
+	 */
+	enabled: function () {
+		return this.s.enable;
+	},
+
+	/**
+	 * Focus on a cell
+	 * @param  {integer} row    Row index
+	 * @param  {integer} column Column index
+	 */
+	focus: function (row, column) {
+		this._focus(this.s.dt.cell(row, column));
+	},
+
+	/**
+	 * Is the cell focused
+	 * @param  {object} cell Cell index to check
+	 * @returns {boolean} true if focused, false otherwise
+	 */
+	focused: function (cell) {
+		var lastFocus = this.s.lastFocus;
+
+		if (!lastFocus) {
+			return false;
+		}
+
+		var lastIdx = this.s.lastFocus.cell.index();
+		return cell.row === lastIdx.row && cell.column === lastIdx.column;
+	},
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Initialise the KeyTable instance
+	 *
+	 * @private
+	 */
+	_constructor: function () {
+		this._tabInput();
+
+		var that = this;
+		var dt = this.s.dt;
+		var table = $(dt.table().node());
+		var namespace = this.s.namespace;
+		var editorBlock = false;
+
+		// Need to be able to calculate the cell positions relative to the table
+		if (table.css('position') === 'static') {
+			table.css('position', 'relative');
+		}
+
+		// Click to focus
+		$(dt.table().body()).on('click' + namespace, 'th, td', function (e) {
+			if (that.s.enable === false) {
+				return;
+			}
+
+			var cell = dt.cell(this);
+
+			if (!cell.any()) {
+				return;
+			}
+
+			that._focus(cell, null, false, e);
+		});
+
+		// Key events
+		$(document).on('keydown' + namespace, function (e) {
+			if (!editorBlock && !that.s.dtDrawing) {
+				that._key(e);
+			}
+			else {
+				e.preventDefault();
+			}
+		});
+
+		// Click blur
+		if (this.c.blurable) {
+			$(document).on('mousedown' + namespace, function (e) {
+				// Click on the search input will blur focus
+				if ($(e.target).parents('.dataTables_filter, .dt-search').length) {
+					that._blur();
+				}
+
+				// If the click was inside the DataTables container, don't blur
+				if ($(e.target).parents().filter(dt.table().container()).length) {
+					return;
+				}
+
+				// Don't blur in Editor form
+				if ($(e.target).parents('div.DTE').length) {
+					return;
+				}
+
+				// Or an Editor date input
+				if (
+					$(e.target).parents('div.editor-datetime').length ||
+					$(e.target).parents('div.dt-datetime').length
+				) {
+					return;
+				}
+
+				//If the click was inside the fixed columns container, don't blur
+				if ($(e.target).parents().filter('.DTFC_Cloned').length) {
+					return;
+				}
+
+				that._blur();
+			});
+		}
+
+		if (this.c.editor) {
+			var editor = this.c.editor;
+
+			// Need to disable KeyTable when the main editor is shown
+			editor.on('open.keyTableMain', function (e, mode, action) {
+				if (mode !== 'inline' && that.s.enable) {
+					that.enable(false);
+
+					editor.one('close' + namespace, function () {
+						that.enable(true);
+					});
+				}
+			});
+
+			if (this.c.editOnFocus) {
+				dt.on(
+					'key-focus' + namespace + ' key-refocus' + namespace,
+					function (e, dt, cell, orig) {
+						that._editor(null, orig, true);
+					}
+				);
+			}
+
+			// Activate Editor when a key is pressed (will be ignored, if
+			// already active).
+			dt.on('key' + namespace, function (e, dt, key, cell, orig) {
+				that._editor(key, orig, false);
+			});
+
+			// Active editing on double click - it will already have focus from
+			// the click event handler above
+			$(dt.table().body()).on('dblclick' + namespace, 'th, td', function (e) {
+				if (that.s.enable === false) {
+					return;
+				}
+
+				var cell = dt.cell(this);
+
+				if (!cell.any()) {
+					return;
+				}
+
+				if (that.s.lastFocus && this !== that.s.lastFocus.cell.node()) {
+					return;
+				}
+
+				that._editor(null, e, true);
+			});
+
+			// While Editor is busy processing, we don't want to process any key events
+			editor
+				.on('preSubmit', function () {
+					editorBlock = true;
+				})
+				.on('preSubmitCancelled', function () {
+					editorBlock = false;
+				})
+				.on('submitComplete', function () {
+					editorBlock = false;
+				});
+		}
+
+		// Stave saving
+		// if ( dt.settings()[0].oFeatures.bStateSave ) {
+		dt.on('stateSaveParams' + namespace, function (e, s, d) {
+			d.keyTable = that.s.lastFocus ? that.s.lastFocus.cell.index() : null;
+		});
+		// }
+
+		dt.on('column-visibility' + namespace, function (e) {
+			that._tabInput();
+		});
+
+		dt.on('column-reorder' + namespace, function (e, s, d) {
+			// Need to update the last focus cell's index
+			var lastFocus = that.s.lastFocus;
+
+			if (lastFocus && lastFocus.cell) {
+				var curr = lastFocus.relative.column;
+
+				// Manipulate the API instance to correct the column index
+				lastFocus.cell[0][0].column = d.mapping.indexOf(curr);
+				lastFocus.relative.column = d.mapping.indexOf(curr);
+			}
+		});
+
+		// When the table is about to do a draw we need to block key
+		// handling. This is only important for async draws - i.e.
+		// server-side processing.
+		dt.on('preDraw' + namespace + ' scroller-will-draw' + namespace, function (e) {
+			that.s.dtDrawing = true;
+		});
+
+		// Redraw - retain focus on the current cell
+		dt.on('draw' + namespace, function (e) {
+			that.s.dtDrawing = false;
+
+			that._tabInput();
+
+			if (that.s.focusDraw) {
+				return;
+			}
+
+			var lastFocus = that.s.lastFocus;
+
+			if (lastFocus) {
+				var relative = that.s.lastFocus.relative;
+				var info = dt.page.info();
+				var row = relative.row;
+
+				if (info.recordsDisplay === 0) {
+					return;
+				}
+
+				// If the refocus is outside the current draw zone -
+				// don't attempt to refocus onto it
+				if (row < info.start || row > info.start + info.length) {
+					return;
+				}
+
+				// Reverse if needed
+				if (row >= info.recordsDisplay) {
+					row = info.recordsDisplay - 1;
+				}
+
+				that._focus(row, relative.column, true, e);
+			}
+		});
+
+		// Clipboard support
+		if (this.c.clipboard) {
+			this._clipboard();
+		}
+
+		dt.on('destroy' + namespace, function () {
+			that._blur(true);
+
+			// Event tidy up
+			dt.off(namespace);
+
+			$(dt.table().body())
+				.off('click' + namespace, 'th, td')
+				.off('dblclick' + namespace, 'th, td');
+
+			$(document)
+				.off('mousedown' + namespace)
+				.off('keydown' + namespace)
+				.off('copy' + namespace)
+				.off('paste' + namespace);
+		});
+
+		// Initial focus comes from state or options
+		var state = dt.state.loaded();
+
+		if (state && state.keyTable) {
+			// Wait until init is done
+			dt.one('init', function () {
+				var cell = dt.cell(state.keyTable);
+
+				// Ensure that the saved cell still exists
+				if (cell.any()) {
+					cell.focus();
+				}
+			});
+		}
+		else if (this.c.focus) {
+			dt.cell(this.c.focus).focus();
+		}
+	},
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Blur the control
+	 *
+	 * @param {boolean} [noEvents=false] Don't trigger updates / events (for destroying)
+	 * @private
+	 */
+	_blur: function (noEvents) {
+		if (!this.s.enable || !this.s.lastFocus) {
+			return;
+		}
+
+		var cell = this.s.lastFocus.cell;
+
+		$(cell.node()).removeClass(this.c.className);
+		this.s.lastFocus = null;
+
+		if (!noEvents) {
+			this._updateFixedColumns(cell.index().column);
+
+			this._emitEvent('key-blur', [this.s.dt, cell]);
+		}
+	},
+
+	/**
+	 * Clipboard interaction handlers
+	 *
+	 * @private
+	 */
+	_clipboard: function () {
+		var dt = this.s.dt;
+		var that = this;
+		var namespace = this.s.namespace;
+		var opts = this.c.clipboard;
+
+		// IE8 doesn't support getting selected text
+		if (!window.getSelection) {
+			return;
+		}
+
+		if (opts === true || opts.copy) {
+			$(document).on('copy' + namespace, function (ejq) {
+				var e = ejq.originalEvent;
+				var selection = window.getSelection().toString();
+				var focused = that.s.lastFocus;
+
+				// Only copy cell text to clipboard if there is no other selection
+				// and there is a focused cell
+				if (!selection && focused) {
+					e.clipboardData.setData(
+						'text/plain',
+						focused.cell.render(that.c.clipboardOrthogonal)
+					);
+					e.preventDefault();
+				}
+			});
+		}
+
+		if (opts === true || opts.paste) {
+			$(document).on('paste' + namespace, function (ejq) {
+				var e = ejq.originalEvent;
+				var focused = that.s.lastFocus;
+				var activeEl = document.activeElement;
+				var editor = that.c.editor;
+				var pastedText;
+
+				if (focused && (!activeEl || activeEl.nodeName.toLowerCase() === 'body')) {
+					e.preventDefault();
+
+					if (window.clipboardData && window.clipboardData.getData) {
+						// IE
+						pastedText = window.clipboardData.getData('Text');
+					}
+					else if (e.clipboardData && e.clipboardData.getData) {
+						// Everything else
+						pastedText = e.clipboardData.getData('text/plain');
+					}
+
+					if (editor) {
+						// Got Editor - need to activate inline editing,
+						// set the value and submit
+						var options = that._inlineOptions(focused.cell.index());
+
+						editor
+							.inline(options.cell, options.field, options.options)
+							.set(editor.displayed()[0], pastedText)
+							.submit();
+					}
+					else {
+						// No editor, so just dump the data in
+						focused.cell.data(pastedText);
+						dt.draw(false);
+					}
+				}
+			});
+		}
+	},
+
+	/**
+	 * Get an array of the column indexes that KeyTable can operate on. This
+	 * is a merge of the user supplied columns and the visible columns.
+	 *
+	 * @private
+	 */
+	_columns: function () {
+		var dt = this.s.dt;
+		var user = dt.columns(this.c.columns).indexes();
+		var out = [];
+
+		dt.columns(':visible').every(function (i) {
+			if (user.indexOf(i) !== -1) {
+				out.push(i);
+			}
+		});
+
+		return out;
+	},
+
+	/**
+	 * Perform excel like navigation for Editor by triggering an edit on key
+	 * press
+	 *
+	 * @param  {integer} key Key code for the pressed key
+	 * @param  {object} orig Original event
+	 * @private
+	 */
+	_editor: function (key, orig, hardEdit) {
+		// If nothing focused, we can't take any action
+		if (!this.s.lastFocus) {
+			return;
+		}
+
+		// DataTables draw event
+		if (orig && orig.type === 'draw') {
+			return;
+		}
+
+		var that = this;
+		var dt = this.s.dt;
+		var editor = this.c.editor;
+		var editCell = this.s.lastFocus.cell;
+		var namespace = this.s.namespace + 'e' + editorNamespaceCounter++;
+
+		// Do nothing if there is already an inline edit in this cell
+		if ($('div.DTE', editCell.node()).length) {
+			return;
+		}
+
+		// Don't activate Editor on control key presses
+		if (
+			key !== null &&
+			((key >= 0x00 && key <= 0x09) ||
+				key === 0x0b ||
+				key === 0x0c ||
+				(key >= 0x0e && key <= 0x1f) ||
+				(key >= 0x70 && key <= 0x7b) ||
+				(key >= 0x7f && key <= 0x9f))
+		) {
+			return;
+		}
+
+		if (orig) {
+			orig.stopPropagation();
+
+			// Return key should do nothing - for textareas it would empty the
+			// contents
+			if (key === 13) {
+				orig.preventDefault();
+			}
+		}
+
+		var editInline = function () {
+			var options = that._inlineOptions(editCell.index());
+
+			editor
+				.one('open' + namespace, function () {
+					// Remove cancel open
+					editor.off('cancelOpen' + namespace);
+
+					// Excel style - select all text
+					if (!hardEdit) {
+						$(
+							'div.DTE_Field_InputControl input, div.DTE_Field_InputControl textarea'
+						).select();
+					}
+
+					// Reduce the keys the Keys listens for
+					dt.keys.enable(hardEdit ? 'tab-only' : 'navigation-only');
+
+					// On blur of the navigation submit
+					dt.on('key-blur.editor', function (e, dt, cell) {
+						// When Editor has its own blur enabled - do nothing here
+						if (editor.s.editOpts.onBlur === 'submit') {
+							return;
+						}
+
+						if (editor.displayed() && cell.node() === editCell.node()) {
+							editor.submit();
+						}
+					});
+
+					// Highlight the cell a different colour on full edit
+					if (hardEdit) {
+						$(dt.table().container()).addClass('dtk-focus-alt');
+					}
+
+					// If the dev cancels the submit, we need to return focus
+					editor.on('preSubmitCancelled' + namespace, function () {
+						setTimeout(function () {
+							that._focus(editCell, null, false);
+						}, 50);
+					});
+
+					editor.on('submitUnsuccessful' + namespace, function () {
+						that._focus(editCell, null, false);
+					});
+
+					// Restore full key navigation on close
+					editor.one('close' + namespace, function () {
+						dt.keys.enable(true);
+						dt.off('key-blur.editor');
+						editor.off(namespace);
+						$(dt.table().container()).removeClass('dtk-focus-alt');
+
+						if (that.s.returnSubmit) {
+							that.s.returnSubmit = false;
+							that._emitEvent('key-return-submit', [dt, editCell]);
+						}
+					});
+				})
+				.one('cancelOpen' + namespace, function () {
+					// `preOpen` can cancel the display of the form, so it
+					// might be that the open event handler isn't needed
+					editor.off(namespace);
+				})
+				.inline(options.cell, options.field, options.options);
+		};
+
+		// Editor 1.7 listens for `return` on keyup, so if return is the trigger
+		// key, we need to wait for `keyup` otherwise Editor would just submit
+		// the content triggered by this keypress.
+		if (key === 13) {
+			hardEdit = true;
+
+			$(document).one('keyup', function () {
+				// immediately removed
+				editInline();
+			});
+		}
+		else {
+			editInline();
+		}
+	},
+
+	_inlineOptions: function (cellIdx) {
+		if (this.c.editorOptions) {
+			return this.c.editorOptions(cellIdx);
+		}
+
+		return {
+			cell: cellIdx,
+			field: undefined,
+			options: undefined
+		};
+	},
+
+	/**
+	 * Emit an event on the DataTable for listeners
+	 *
+	 * @param  {string} name Event name
+	 * @param  {array} args Event arguments
+	 * @private
+	 */
+	_emitEvent: function (name, args) {
+		return this.s.dt.iterator('table', function (ctx, i) {
+			return $(ctx.nTable).triggerHandler(name, args);
+		});
+	},
+
+	/**
+	 * Focus on a particular cell, shifting the table's paging if required
+	 *
+	 * @param  {DataTables.Api|integer} row Can be given as an API instance that
+	 *   contains the cell to focus or as an integer. As the latter it is the
+	 *   visible row index (from the whole data set) - NOT the data index
+	 * @param  {integer} [column] Not required if a cell is given as the first
+	 *   parameter. Otherwise this is the column data index for the cell to
+	 *   focus on
+	 * @param {boolean} [shift=true] Should the viewport be moved to show cell
+	 * @private
+	 */
+	_focus: function (row, column, shift, originalEvent) {
+		var that = this;
+		var dt = this.s.dt;
+		var pageInfo = dt.page.info();
+		var lastFocus = this.s.lastFocus;
+
+		if (!originalEvent) {
+			originalEvent = null;
+		}
+
+		if (!this.s.enable) {
+			return;
+		}
+
+		if (typeof row !== 'number') {
+			// Its an API instance - check that there is actually a row
+			if (!row.any()) {
+				return;
+			}
+
+			// Convert the cell to a row and column
+			var index = row.index();
+			column = index.column;
+			row = dt.rows({ filter: 'applied', order: 'applied' }).indexes().indexOf(index.row);
+
+			// Don't focus rows that were filtered out.
+			if (row < 0) {
+				return;
+			}
+
+			// For server-side processing normalise the row by adding the start
+			// point, since `rows().indexes()` includes only rows that are
+			// available at the client-side
+			if (pageInfo.serverSide) {
+				row += pageInfo.start;
+			}
+		}
+
+		// Is the row on the current page? If not, we need to redraw to show the
+		// page
+		if (
+			pageInfo.length !== -1 &&
+			(row < pageInfo.start || row >= pageInfo.start + pageInfo.length)
+		) {
+			this.s.focusDraw = true;
+			this.s.waitingForDraw = true;
+
+			dt.one('draw', function () {
+				that.s.focusDraw = false;
+				that.s.waitingForDraw = false;
+				that._focus(row, column, undefined, originalEvent);
+			})
+				.page(Math.floor(row / pageInfo.length))
+				.draw(false);
+
+			return;
+		}
+
+		// In the available columns?
+		if ($.inArray(column, this._columns()) === -1) {
+			return;
+		}
+
+		// De-normalise the server-side processing row, so we select the row
+		// in its displayed position
+		if (pageInfo.serverSide) {
+			row -= pageInfo.start;
+		}
+
+		// Get the cell from the current position - ignoring any cells which might
+		// not have been rendered (therefore can't use `:eq()` selector).
+		var cells = dt.cells(null, column, { search: 'applied', order: 'applied' }).flatten();
+		var cell = dt.cell(cells[row]);
+
+		// Prefocus check - this event allows a focus action to be disallowed.
+		var preFocus = this._emitEvent('key-prefocus', [this.s.dt, cell, originalEvent || null]);
+		if (preFocus.indexOf(false) !== -1) {
+			return;
+		}
+
+		if (lastFocus) {
+			// Don't trigger a refocus on the same cell
+			if (lastFocus.node === cell.node()) {
+				this._emitEvent('key-refocus', [this.s.dt, cell, originalEvent || null]);
+				return;
+			}
+
+			// Otherwise blur the old focus
+			this._blur();
+		}
+
+		// Clear focus from other tables
+		this._removeOtherFocus();
+
+		var node = $(cell.node());
+		node.addClass(this.c.className);
+
+		this._updateFixedColumns(column);
+
+		// Shift viewpoint and page to make cell visible
+		if (shift === undefined || shift === true) {
+			this._scroll($(window), $(document.body), node, 'offset');
+
+			var bodyParent = dt.table().body().parentNode;
+			if (bodyParent !== dt.table().header().parentNode) {
+				var parent = $(bodyParent.parentNode);
+
+				this._scroll(parent, parent, node, 'position');
+			}
+		}
+
+		// Event and finish
+		var info = dt.page.info();
+
+		this.s.lastFocus = {
+			cell: cell,
+			node: cell.node(),
+			relative: {
+				row: info.start + dt.rows({ page: 'current' }).indexes().indexOf(cell.index().row),
+				column: cell.index().column
+			}
+		};
+
+		this._emitEvent('key-focus', [this.s.dt, cell, originalEvent || null]);
+		dt.state.save();
+	},
+
+	/**
+	 * Handle key press
+	 *
+	 * @param  {object} e Event
+	 * @private
+	 */
+	_key: function (e) {
+		// If we are waiting for a draw to happen from another key event, then
+		// do nothing for this new key press.
+		if (this.s.waitingForDraw) {
+			e.preventDefault();
+			return;
+		}
+
+		// Ignore key presses in an Editor inline create row - it is not navigatable
+		// by KeyTable
+		if ($(e.target).closest('.dte-inlineAdd').length) {
+			return;
+		}
+
+		var enable = this.s.enable;
+		this.s.returnSubmit =
+			(enable === 'navigation-only' || enable === 'tab-only') && e.keyCode === 13
+				? true
+				: false;
+
+		var navEnable = enable === true || enable === 'navigation-only';
+		if (!enable) {
+			return;
+		}
+
+		if ((e.keyCode === 0 || e.ctrlKey || e.metaKey || e.altKey) && !(e.ctrlKey && e.altKey)) {
+			return;
+		}
+
+		// If not focused, then there is no key action to take
+		var lastFocus = this.s.lastFocus;
+		if (!lastFocus) {
+			return;
+		}
+
+		// And the last focus still exists!
+		if (!this.s.dt.cell(lastFocus.node).any()) {
+			this.s.lastFocus = null;
+			return;
+		}
+
+		var that = this;
+		var dt = this.s.dt;
+		var scrolling = this.s.dt.settings()[0].oScroll.sY ? true : false;
+
+		// If we are not listening for this key, do nothing
+		if (this.c.keys && $.inArray(e.keyCode, this.c.keys) === -1) {
+			return;
+		}
+
+		switch (e.keyCode) {
+			case 9: // tab
+				// `enable` can be tab-only
+				e.preventDefault();
+
+				this._keyAction(function () {
+					that._shift(e, e.shiftKey ? 'left' : 'right', true);
+				});
+				break;
+
+			case 27: // esc
+				// If there is an inline edit in the cell, let it blur first,
+				// a second escape will then blur keytable
+				if ($(lastFocus.node).find('div.DTE').length) {
+					return;
+				}
+
+				if (this.c.blurable && enable === true) {
+					this._blur();
+				}
+				break;
+
+			case 33: // page up (previous page)
+			case 34: // page down (next page)
+				if (navEnable && !scrolling) {
+					e.preventDefault();
+
+					this._keyAction(function () {
+						dt.page(e.keyCode === 33 ? 'previous' : 'next').draw(false);
+					});
+				}
+				break;
+
+			case 35: // end (end of current page)
+			case 36: // home (start of current page)
+				if (navEnable) {
+					e.preventDefault();
+
+					this._keyAction(function () {
+						var indexes = dt.cells({ page: 'current' }).indexes();
+						var colIndexes = that._columns();
+
+						that._focus(
+							dt.cell(indexes[e.keyCode === 35 ? indexes.length - 1 : colIndexes[0]]),
+							null,
+							true,
+							e
+						);
+					});
+				}
+				break;
+
+			case 37: // left arrow
+				if (navEnable) {
+					this._keyAction(function () {
+						that._shift(e, 'left');
+					});
+				}
+				break;
+
+			case 38: // up arrow
+				if (navEnable) {
+					this._keyAction(function () {
+						that._shift(e, 'up');
+					});
+				}
+				break;
+
+			case 39: // right arrow
+				if (navEnable) {
+					this._keyAction(function () {
+						that._shift(e, 'right');
+					});
+				}
+				break;
+
+			case 40: // down arrow
+				if (navEnable) {
+					this._keyAction(function () {
+						that._shift(e, 'down');
+					});
+				}
+				break;
+
+			case 113: // F2 - Excel like hard edit
+				if (this.c.editor) {
+					this._editor(null, e, true);
+					break;
+				}
+			// else fallthrough
+
+			default:
+				// Everything else - pass through only when fully enabled
+				if (enable === true) {
+					this._emitEvent('key', [dt, e.keyCode, this.s.lastFocus.cell, e]);
+				}
+				break;
+		}
+	},
+
+	/**
+	 * Whether we perform a key shift action immediately or not depends
+	 * upon if Editor is being used. If it is, then we wait until it
+	 * completes its action
+	 * @param {*} action Function to trigger when ready
+	 */
+	_keyAction: function (action) {
+		var editor = this.c.editor;
+
+		if (editor && editor.mode() && editor.display()) {
+			editor.submit(action);
+		}
+		else {
+			action();
+		}
+	},
+
+	/**
+	 * Remove focus from all tables other than this one
+	 */
+	_removeOtherFocus: function () {
+		var thisTable = this.s.dt.table().node();
+
+		$.fn.dataTable.tables({ api: true }).iterator('table', function (settings) {
+			if (this.table().node() !== thisTable) {
+				this.cell.blur();
+			}
+		});
+	},
+
+	/**
+	 * Scroll a container to make a cell visible in it. This can be used for
+	 * both DataTables scrolling and native window scrolling.
+	 *
+	 * @param  {jQuery} container Scrolling container
+	 * @param  {jQuery} scroller  Item being scrolled
+	 * @param  {jQuery} cell      Cell in the scroller
+	 * @param  {string} posOff    `position` or `offset` - which to use for the
+	 *   calculation. `offset` for the document, otherwise `position`
+	 * @private
+	 */
+	_scroll: function (container, scroller, cell, posOff) {
+		var offset = cell[posOff]();
+		var height = cell.outerHeight();
+		var width = cell.outerWidth();
+
+		var scrollTop = scroller.scrollTop();
+		var scrollLeft = scroller.scrollLeft();
+		var containerHeight = container.height();
+		var containerWidth = container.width();
+
+		// If Scroller is being used, the table can be `position: absolute` and that
+		// needs to be taken account of in the offset. If no Scroller, this will be 0
+		if (posOff === 'position') {
+			offset.top += parseInt(cell.closest('table').css('top'), 10);
+		}
+
+		// Top correction (partially in view)
+		if (offset.top < scrollTop && offset.top + height > scrollTop - 5) {
+			scroller.scrollTop(offset.top);
+		}
+
+		// Left correction
+		if (offset.left < scrollLeft) {
+			scroller.scrollLeft(offset.left);
+		}
+
+		// Bottom correction plus in view correction. Note that the magic 5 is to allow
+		// for the edge just passing the bottom of the view
+		if (
+			offset.top + height > scrollTop + containerHeight &&
+			offset.top < scrollTop + containerHeight + 5 &&
+			height < containerHeight
+		) {
+			scroller.scrollTop(offset.top + height - containerHeight);
+		}
+
+		// Right correction
+		if (offset.left + width > scrollLeft + containerWidth && width < containerWidth) {
+			scroller.scrollLeft(offset.left + width - containerWidth);
+		}
+	},
+
+	/**
+	 * Calculate a single offset movement in the table - up, down, left and
+	 * right and then perform the focus if possible
+	 *
+	 * @param  {object}  e           Event object
+	 * @param  {string}  direction   Movement direction
+	 * @param  {boolean} keyBlurable `true` if the key press can result in the
+	 *   table being blurred. This is so arrow keys won't blur the table, but
+	 *   tab will.
+	 * @private
+	 */
+	_shift: function (e, direction, keyBlurable) {
+		var dt = this.s.dt;
+		var pageInfo = dt.page.info();
+		var rows = pageInfo.recordsDisplay;
+		var columns = this._columns();
+		var last = this.s.lastFocus;
+		if (!last) {
+			return;
+		}
+
+		var currentCell = last.cell;
+		if (!currentCell) {
+			return;
+		}
+
+		var currRow = dt
+			.rows({ filter: 'applied', order: 'applied' })
+			.indexes()
+			.indexOf(currentCell.index().row);
+
+		// When server-side processing, `rows().indexes()` only gives the rows
+		// that are available at the client-side, so we need to normalise the
+		// row's current position by the display start point
+		if (pageInfo.serverSide) {
+			currRow += pageInfo.start;
+		}
+
+		var currCol = dt.columns(columns).indexes().indexOf(currentCell.index().column);
+
+		var row = currRow,
+			column = columns[currCol]; // row is the display, column is an index
+
+		// If the direction is rtl then the logic needs to be inverted from this point forwards
+		if ($(dt.table().node()).css('direction') === 'rtl') {
+			if (direction === 'right') {
+				direction = 'left';
+			}
+			else if (direction === 'left') {
+				direction = 'right';
+			}
+		}
+
+		if (direction === 'right') {
+			if (currCol >= columns.length - 1) {
+				row++;
+				column = columns[0];
+			}
+			else {
+				column = columns[currCol + 1];
+			}
+		}
+		else if (direction === 'left') {
+			if (currCol === 0) {
+				row--;
+				column = columns[columns.length - 1];
+			}
+			else {
+				column = columns[currCol - 1];
+			}
+		}
+		else if (direction === 'up') {
+			row--;
+		}
+		else if (direction === 'down') {
+			row++;
+		}
+
+		if (row >= 0 && row < rows && $.inArray(column, columns) !== -1) {
+			if (e) {
+				e.preventDefault();
+			}
+
+			this._focus(row, column, true, e);
+		}
+		else if (!keyBlurable || !this.c.blurable) {
+			// No new focus, but if the table isn't blurable, then don't loose
+			// focus
+			if (e) {
+				e.preventDefault();
+			}
+		}
+		else {
+			this._blur();
+		}
+	},
+
+	/**
+	 * Create and insert a hidden input element that can receive focus on behalf
+	 * of the table
+	 *
+	 * @private
+	 */
+	_tabInput: function () {
+		var that = this;
+		var dt = this.s.dt;
+		var tabIndex = this.c.tabIndex !== null ? this.c.tabIndex : dt.settings()[0].iTabIndex;
+
+		if (tabIndex == -1) {
+			return;
+		}
+
+		// Only create the input element once on first class
+		if (!this.s.tabInput) {
+			var inputId = 'keytable-focus-capture-' + this.s.namespace.split('-')[1];
+			var input = '<input id="' + inputId + '" type="text" tabindex="' + tabIndex + '"/>'
+			var div = $('<div><label for="' + inputId + '">' + input + '</label></div>').css({
+				position: 'absolute',
+				height: 1,
+				width: 0,
+				overflow: 'hidden'
+			});
+
+			div.find('input').on('focus', function (e) {
+				var cell = dt.cell(':eq(0)', that._columns(), { page: 'current' });
+
+				if (cell.any()) {
+					that._focus(cell, null, true, e);
+				}
+			});
+
+			this.s.tabInput = div;
+		}
+
+		// Insert the input element into the first cell in the table's body
+		var cell = this.s.dt
+			.cell(':eq(0)', '0:visible', { page: 'current', order: 'current' })
+			.node();
+		if (cell) {
+			$(cell).prepend(this.s.tabInput);
+		}
+	},
+
+	/**
+	 * Update fixed columns if they are enabled and if the cell we are
+	 * focusing is inside a fixed column
+	 * @param  {integer} column Index of the column being changed
+	 * @private
+	 */
+	_updateFixedColumns: function (column) {
+		var dt = this.s.dt;
+		var settings = dt.settings()[0];
+
+		if (settings._oFixedColumns) {
+			var leftCols = settings._oFixedColumns.s.iLeftColumns;
+			var rightCols = settings.aoColumns.length - settings._oFixedColumns.s.iRightColumns;
+
+			if (column < leftCols || column >= rightCols) {
+				dt.fixedColumns().update();
+			}
+		}
+	}
+});
+
+/**
+ * KeyTable default settings for initialisation
+ *
+ * @namespace
+ * @name KeyTable.defaults
+ * @static
+ */
+KeyTable.defaults = {
+	/**
+	 * Can focus be removed from the table
+	 * @type {Boolean}
+	 */
+	blurable: true,
+
+	/**
+	 * Class to give to the focused cell
+	 * @type {String}
+	 */
+	className: 'focus',
+
+	/**
+	 * Enable or disable clipboard support
+	 * @type {Boolean}
+	 */
+	clipboard: true,
+
+	/**
+	 * Orthogonal data that should be copied to clipboard
+	 * @type {string}
+	 */
+	clipboardOrthogonal: 'display',
+
+	/**
+	 * Columns that can be focused. This is automatically merged with the
+	 * visible columns as only visible columns can gain focus.
+	 * @type {String}
+	 */
+	columns: '', // all
+
+	/**
+	 * Editor instance to automatically perform Excel like navigation
+	 * @type {Editor}
+	 */
+	editor: null,
+
+	/**
+	 * Trigger editing immediately on focus
+	 * @type {boolean}
+	 */
+	editOnFocus: false,
+
+	/**
+	 * Options to pass to Editor's inline method
+	 * @type {function}
+	 */
+	editorOptions: null,
+
+	/**
+	 * Select a cell to automatically select on start up. `null` for no
+	 * automatic selection
+	 * @type {cell-selector}
+	 */
+	focus: null,
+
+	/**
+	 * Array of keys to listen for
+	 * @type {null|array}
+	 */
+	keys: null,
+
+	/**
+	 * Tab index for where the table should sit in the document's tab flow
+	 * @type {integer|null}
+	 */
+	tabIndex: null
+};
+
+KeyTable.version = '2.12.2';
+
+$.fn.dataTable.KeyTable = KeyTable;
+$.fn.DataTable.KeyTable = KeyTable;
+
+DataTable.Api.register('cell.blur()', function () {
+	return this.iterator('table', function (ctx) {
+		if (ctx.keytable) {
+			ctx.keytable.blur();
+		}
+	});
+});
+
+DataTable.Api.register('cell().focus()', function () {
+	return this.iterator('cell', function (ctx, row, column) {
+		if (ctx.keytable) {
+			ctx.keytable.focus(row, column);
+		}
+	});
+});
+
+DataTable.Api.register('keys.disable()', function () {
+	return this.iterator('table', function (ctx) {
+		if (ctx.keytable) {
+			ctx.keytable.enable(false);
+		}
+	});
+});
+
+DataTable.Api.register('keys.enable()', function (opts) {
+	return this.iterator('table', function (ctx) {
+		if (ctx.keytable) {
+			ctx.keytable.enable(opts === undefined ? true : opts);
+		}
+	});
+});
+
+DataTable.Api.register('keys.enabled()', function (opts) {
+	var ctx = this.context;
+
+	if (ctx.length) {
+		return ctx[0].keytable ? ctx[0].keytable.enabled() : false;
+	}
+
+	return false;
+});
+
+DataTable.Api.register('keys.move()', function (dir) {
+	return this.iterator('table', function (ctx) {
+		if (ctx.keytable) {
+			ctx.keytable._shift(null, dir, false);
+		}
+	});
+});
+
+// Cell selector
+DataTable.ext.selector.cell.push(function (settings, opts, cells) {
+	var focused = opts.focused;
+	var kt = settings.keytable;
+	var out = [];
+
+	if (!kt || focused === undefined) {
+		return cells;
+	}
+
+	for (var i = 0, ien = cells.length; i < ien; i++) {
+		if (
+			(focused === true && kt.focused(cells[i])) ||
+			(focused === false && !kt.focused(cells[i]))
+		) {
+			out.push(cells[i]);
+		}
+	}
+
+	return out;
+});
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on('preInit.dt.dtk', function (e, settings, json) {
+	if (e.namespace !== 'dt') {
+		return;
+	}
+
+	var init = settings.oInit.keys;
+	var defaults = DataTable.defaults.keys;
+
+	if (init || defaults) {
+		var opts = $.extend({}, defaults, init);
+
+		if (init !== false) {
+			new KeyTable(settings, opts);
+		}
+	}
 });
 
 
@@ -23515,6 +23120,1407 @@ $(document).on('preInit.dt.dtrg', function (e, settings, json) {
 			new RowGroup(settings, opts);
 		}
 	}
+});
+
+
+return DataTable;
+}));
+
+
+/*! Scroller 2.4.3
+ * © SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+
+/**
+ * @summary     Scroller
+ * @description Virtual rendering for DataTables
+ * @version     2.4.3
+ * @copyright   SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+/**
+ * Scroller is a virtual rendering plug-in for DataTables which allows large
+ * datasets to be drawn on screen very quickly. What the virtual rendering means
+ * is that only the visible portion of the table (and a bit to either side to make
+ * the scrolling smooth) is drawn, while the scrolling container gives the
+ * visual impression that the whole table is visible. This is done by making use
+ * of the pagination abilities of DataTables and moving the table around in the
+ * scrolling container DataTables adds to the page. The scrolling container is
+ * forced to the height it would be for the full table display using an extra
+ * element.
+ *
+ * Note that rows in the table MUST all be the same height. Information in a cell
+ * which expands on to multiple lines will cause some odd behaviour in the scrolling.
+ *
+ * Scroller is initialised by simply including the letter 'S' in the sDom for the
+ * table you want to have this feature enabled on. Note that the 'S' must come
+ * AFTER the 't' parameter in `dom`.
+ *
+ * Key features include:
+ *   <ul class="limit_length">
+ *     <li>Speed! The aim of Scroller for DataTables is to make rendering large data sets fast</li>
+ *     <li>Full compatibility with deferred rendering in DataTables for maximum speed</li>
+ *     <li>Display millions of rows</li>
+ *     <li>Integration with state saving in DataTables (scrolling position is saved)</li>
+ *     <li>Easy to use</li>
+ *   </ul>
+ *
+ *  @class
+ *  @constructor
+ *  @global
+ *  @param {object} dt DataTables settings object or API instance
+ *  @param {object} [opts={}] Configuration object for Scroller. Options
+ *    are defined by {@link Scroller.defaults}
+ *
+ *  @requires jQuery 1.7+
+ *  @requires DataTables 1.11.0+
+ */
+var Scroller = function (dt, opts) {
+	/* Sanity check - you just know it will happen */
+	if (!(this instanceof Scroller)) {
+		alert(
+			"Scroller warning: Scroller must be initialised with the 'new' keyword."
+		);
+		return;
+	}
+
+	if (opts === undefined) {
+		opts = {};
+	}
+
+	var dtApi = $.fn.dataTable.Api(dt);
+
+	/**
+	 * Settings object which contains customisable information for the Scroller instance
+	 * @namespace
+	 * @private
+	 * @extends Scroller.defaults
+	 */
+	this.s = {
+		/**
+		 * DataTables settings object
+		 *  @type     object
+		 *  @default  Passed in as first parameter to constructor
+		 */
+		dt: dtApi.settings()[0],
+
+		/**
+		 * DataTables API instance
+		 *  @type     DataTable.Api
+		 */
+		dtApi: dtApi,
+
+		/**
+		 * Pixel location of the top of the drawn table in the viewport
+		 *  @type     int
+		 *  @default  0
+		 */
+		tableTop: 0,
+
+		/**
+		 * Pixel location of the bottom of the drawn table in the viewport
+		 *  @type     int
+		 *  @default  0
+		 */
+		tableBottom: 0,
+
+		/**
+		 * Pixel location of the boundary for when the next data set should be loaded and drawn
+		 * when scrolling up the way.
+		 *  @type     int
+		 *  @default  0
+		 *  @private
+		 */
+		redrawTop: 0,
+
+		/**
+		 * Pixel location of the boundary for when the next data set should be loaded and drawn
+		 * when scrolling down the way. Note that this is actually calculated as the offset from
+		 * the top.
+		 *  @type     int
+		 *  @default  0
+		 *  @private
+		 */
+		redrawBottom: 0,
+
+		/**
+		 * Auto row height or not indicator
+		 *  @type     bool
+		 *  @default  0
+		 */
+		autoHeight: true,
+
+		/**
+		 * Number of rows calculated as visible in the visible viewport
+		 *  @type     int
+		 *  @default  0
+		 */
+		viewportRows: 0,
+
+		/**
+		 * setTimeout reference for state saving, used when state saving is enabled in the DataTable
+		 * and when the user scrolls the viewport in order to stop the cookie set taking too much
+		 * CPU!
+		 *  @type     int
+		 *  @default  0
+		 */
+		stateTO: null,
+
+		stateSaveThrottle: function () {},
+
+		/**
+		 * setTimeout reference for the redraw, used when server-side processing is enabled in the
+		 * DataTables in order to prevent DoSing the server
+		 *  @type     int
+		 *  @default  null
+		 */
+		drawTO: null,
+
+		heights: {
+			jump: null,
+			page: null,
+			virtual: null,
+			scroll: null,
+
+			/**
+			 * Height of rows in the table
+			 *  @type     int
+			 *  @default  0
+			 */
+			row: null,
+
+			/**
+			 * Pixel height of the viewport
+			 *  @type     int
+			 *  @default  0
+			 */
+			viewport: null,
+			labelHeight: 0,
+			xbar: 0
+		},
+
+		topRowFloat: 0,
+		scrollDrawDiff: null,
+		loaderVisible: false,
+		forceReposition: false,
+		baseRowTop: 0,
+		baseScrollTop: 0,
+		mousedown: false,
+		lastScrollTop: 0
+	};
+
+	// @todo The defaults should extend a `c` property and the internal settings
+	// only held in the `s` property. At the moment they are mixed
+	this.s = $.extend(this.s, Scroller.oDefaults, opts);
+
+	// Workaround for row height being read from height object (see above comment)
+	this.s.heights.row = this.s.rowHeight;
+
+	/**
+	 * DOM elements used by the class instance
+	 * @private
+	 * @namespace
+	 *
+	 */
+	this.dom = {
+		force: document.createElement('div'),
+		label: $('<div class="dts_label">0</div>'),
+		scroller: null,
+		table: null,
+		loader: null
+	};
+
+	// Attach the instance to the DataTables instance so it can be accessed in
+	// future. Don't initialise Scroller twice on the same table
+	if (this.s.dt.oScroller) {
+		return;
+	}
+
+	this.s.dt.oScroller = this;
+
+	/* Let's do it */
+	this.construct();
+};
+
+$.extend(Scroller.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Public methods - to be exposed via the DataTables API
+	 */
+
+	/**
+	 * Calculate and store information about how many rows are to be displayed
+	 * in the scrolling viewport, based on current dimensions in the browser's
+	 * rendering. This can be particularly useful if the table is initially
+	 * drawn in a hidden element - for example in a tab.
+	 *  @param {bool} [redraw=true] Redraw the table automatically after the recalculation, with
+	 *    the new dimensions forming the basis for the draw.
+	 *  @returns {void}
+	 */
+	measure: function (redraw) {
+		if (this.s.autoHeight) {
+			this._calcRowHeight();
+		}
+
+		var heights = this.s.heights;
+
+		if (heights.row) {
+			heights.viewport = this._parseHeight(
+				$(this.dom.scroller).css('max-height')
+			);
+
+			this.s.viewportRows =
+				parseInt(heights.viewport / heights.row, 10) + 1;
+			this.s.dt._iDisplayLength =
+				this.s.viewportRows * this.s.displayBuffer;
+		}
+
+		var label = this.dom.label.outerHeight();
+
+		heights.xbar =
+			this.dom.scroller.offsetHeight - this.dom.scroller.clientHeight;
+		heights.labelHeight = label;
+
+		if (redraw === undefined || redraw) {
+			this.s.dtApi.draw(false);
+		}
+	},
+
+	/**
+	 * Get information about current displayed record range. This corresponds to
+	 * the information usually displayed in the "Info" block of the table.
+	 *
+	 * @returns {object} info as an object:
+	 *  {
+	 *      start: {int}, // the 0-indexed record at the top of the viewport
+	 *      end:   {int}, // the 0-indexed record at the bottom of the viewport
+	 *  }
+	 */
+	pageInfo: function () {
+		var dt = this.s.dt,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iTotal = dt.fnRecordsDisplay(),
+			iPossibleEnd = Math.ceil(
+				this.pixelsToRow(
+					iScrollTop + this.s.heights.viewport,
+					false,
+					this.s.ani
+				)
+			);
+
+		return {
+			start: Math.floor(this.pixelsToRow(iScrollTop, false, this.s.ani)),
+			end: iTotal < iPossibleEnd ? iTotal - 1 : iPossibleEnd - 1
+		};
+	},
+
+	/**
+	 * Calculate the row number that will be found at the given pixel position
+	 * (y-scroll).
+	 *
+	 * Please note that when the height of the full table exceeds 1 million
+	 * pixels, Scroller switches into a non-linear mode for the scrollbar to fit
+	 * all of the records into a finite area, but this function returns a linear
+	 * value (relative to the last non-linear positioning).
+	 *  @param {int} pixels Offset from top to calculate the row number of
+	 *  @param {int} [intParse=true] If an integer value should be returned
+	 *  @param {int} [virtual=false] Perform the calculations in the virtual domain
+	 *  @returns {int} Row index
+	 */
+	pixelsToRow: function (pixels, intParse, virtual) {
+		var diff = pixels - this.s.baseScrollTop;
+		var row = virtual
+			? (this._domain('physicalToVirtual', this.s.baseScrollTop) + diff) /
+				this.s.heights.row
+			: diff / this.s.heights.row + this.s.baseRowTop;
+
+		return intParse || intParse === undefined ? parseInt(row, 10) : row;
+	},
+
+	/**
+	 * Calculate the pixel position from the top of the scrolling container for
+	 * a given row
+	 *  @param {int} iRow Row number to calculate the position of
+	 *  @returns {int} Pixels
+	 */
+	rowToPixels: function (rowIdx, intParse, virtual) {
+		var pixels;
+		var diff = rowIdx - this.s.baseRowTop;
+
+		if (virtual) {
+			pixels = this._domain('virtualToPhysical', this.s.baseScrollTop);
+			pixels += diff * this.s.heights.row;
+		}
+		else {
+			pixels = this.s.baseScrollTop;
+			pixels += diff * this.s.heights.row;
+		}
+
+		return intParse || intParse === undefined
+			? parseInt(pixels, 10)
+			: pixels;
+	},
+
+	/**
+	 * Calculate the row number that will be found at the given pixel position (y-scroll)
+	 *  @param {int} row Row index to scroll to
+	 *  @param {bool} [animate=true] Animate the transition or not
+	 *  @returns {void}
+	 */
+	scrollToRow: function (row, animate) {
+		var that = this;
+		var ani = false;
+		var px = this.rowToPixels(row);
+
+		// We need to know if the table will redraw or not before doing the
+		// scroll. If it will not redraw, then we need to use the currently
+		// displayed table, and scroll with the physical pixels. Otherwise, we
+		// need to calculate the table's new position from the virtual
+		// transform.
+		var preRows = ((this.s.displayBuffer - 1) / 2) * this.s.viewportRows;
+		var drawRow = row - preRows;
+		if (drawRow < 0) {
+			drawRow = 0;
+		}
+
+		if (
+			(px > this.s.redrawBottom || px < this.s.redrawTop) &&
+			this.s.dt._iDisplayStart !== drawRow
+		) {
+			ani = true;
+			px = this._domain('virtualToPhysical', row * this.s.heights.row);
+
+			// If we need records outside the current draw region, but the new
+			// scrolling position is inside that (due to the non-linear nature
+			// for larger numbers of records), we need to force position update.
+			if (this.s.redrawTop < px && px < this.s.redrawBottom) {
+				this.s.forceReposition = true;
+				animate = false;
+			}
+		}
+
+		if (animate === undefined || animate) {
+			this.s.ani = ani;
+			$(this.dom.scroller).animate(
+				{
+					scrollTop: px
+				},
+				function () {
+					// This needs to happen after the animation has completed and
+					// the final scroll event fired
+					setTimeout(function () {
+						that.s.ani = false;
+					}, 250);
+				}
+			);
+		}
+		else {
+			$(this.dom.scroller).scrollTop(px);
+		}
+	},
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Initialisation for Scroller
+	 *  @returns {void}
+	 *  @private
+	 */
+	construct: function () {
+		var that = this;
+		var dt = this.s.dtApi;
+
+		/* Sanity check */
+		if (!this.s.dt.oFeatures.bPaginate) {
+			throw new Error(
+				'Pagination must be enabled for Scroller to operate'
+			);
+		}
+
+		/* Insert a div element that we can use to force the DT scrolling container to
+		 * the height that would be required if the whole table was being displayed
+		 */
+		this.dom.force.style.position = 'relative';
+		this.dom.force.style.top = '0px';
+		this.dom.force.style.left = '0px';
+		this.dom.force.style.width = '1px';
+
+		this.dom.scroller = dt.table().node().parentNode;
+		this.dom.scroller.appendChild(this.dom.force);
+		this.dom.scroller.style.position = 'relative';
+
+		this.dom.table = $('>table', this.dom.scroller)[0];
+		this.dom.table.style.position = 'absolute';
+		this.dom.table.style.top = '0px';
+		this.dom.table.style.left = '0px';
+
+		// Add class to 'announce' that we are a Scroller table
+		$(dt.table().container()).addClass('dts DTS');
+
+		this.dom.label.appendTo(this.dom.scroller);
+
+		/* Initial size calculations */
+		if (this.s.heights.row && this.s.heights.row != 'auto') {
+			this.s.autoHeight = false;
+		}
+
+		// Scrolling callback to see if a page change is needed
+		this.s.ingnoreScroll = true;
+		$(this.dom.scroller).on('scroll.dt-scroller', function (e) {
+			that._scroll.call(that);
+		});
+
+		// In iOS we catch the touchstart event in case the user tries to scroll
+		// while the display is already scrolling
+		$(this.dom.scroller).on('touchstart.dt-scroller', function () {
+			that._scroll.call(that);
+		});
+
+		$(this.dom.scroller)
+			.on('mousedown.dt-scroller', function () {
+				that.s.mousedown = true;
+			})
+			.on('mouseup.dt-scroller', function () {
+				that.s.labelVisible = false;
+				that.s.mousedown = false;
+				that.dom.label.css('display', 'none');
+			});
+
+		// On resize, update the information element, since the number of rows shown might change
+		$(window).on('resize.dt-scroller', function () {
+			that.measure(false);
+			that._info();
+		});
+
+		// Add a state saving parameter to the DT state saving so we can restore the exact
+		// position of the scrolling.
+		var initialStateSave = true;
+		var loadedState = dt.state.loaded();
+
+		dt.on('stateSaveParams.scroller', function (e, settings, data) {
+			if (initialStateSave && loadedState) {
+				data.scroller = loadedState.scroller;
+				initialStateSave = false;
+
+				if (data.scroller) {
+					that.s.lastScrollTop = data.scroller.scrollTop;
+				}
+			}
+			else {
+				// Need to used the saved position on init
+				data.scroller = {
+					topRow: that.s.topRowFloat,
+					baseRowTop: that.s.baseRowTop
+				};
+			}
+		});
+
+		dt.on('stateLoadParams.scroller', function (e, settings, data) {
+			if (data.scroller !== undefined) {
+				that.scrollToRow(data.scroller.topRow);
+			}
+		});
+
+		this.measure(false);
+
+		if (loadedState && loadedState.scroller) {
+			this.s.topRowFloat = loadedState.scroller.topRow;
+			this.s.baseRowTop = loadedState.scroller.baseRowTop;
+
+			// Reconstruct the scroll positions from the rows - it is possible the
+			// row height has changed e.g. if the styling framework has changed.
+			// The scroll top is used in `_draw` further down.
+			this.s.baseScrollTop = this.s.baseRowTop * this.s.heights.row;			
+			loadedState.scroller.scrollTop = this._domain('physicalToVirtual', this.s.topRowFloat * this.s.heights.row);
+		}
+
+		that.s.stateSaveThrottle = DataTable.util.throttle(function () {
+			that.s.dtApi.state.save();
+		}, 500);
+
+		dt.on('init.scroller', function () {
+			that.measure(false);
+
+			// Setting to `jump` will instruct _draw to calculate the scroll top
+			// position
+			that.s.scrollType = 'jump';
+			that._draw();
+
+			// Update the scroller when the DataTable is redrawn
+			dt.on('draw.scroller', function () {
+				that._draw();
+			});
+		});
+
+		// Set height before the draw happens, allowing everything else to update
+		// on draw complete without worry for roder.
+		dt.on('preDraw.dt.scroller', function () {
+			that._scrollForce();
+		});
+
+		// Destructor
+		dt.on('destroy.scroller', function () {
+			$(window).off('resize.dt-scroller');
+			$(that.dom.scroller).off('.dt-scroller');
+			$(that.s.dt.nTable).off('.scroller');
+
+			$(that.s.dt.nTableWrapper).removeClass('DTS');
+			$('div.DTS_Loading', that.dom.scroller.parentNode).remove();
+
+			that.dom.table.style.position = '';
+			that.dom.table.style.top = '';
+			that.dom.table.style.left = '';
+		});
+	},
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Automatic calculation of table row height. This is just a little tricky here as using
+	 * initialisation DataTables has tale the table out of the document, so we need to create
+	 * a new table and insert it into the document, calculate the row height and then whip the
+	 * table out.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_calcRowHeight: function () {
+		var dt = this.s.dt;
+		var origTable = dt.nTable;
+		var nTable = origTable.cloneNode(false);
+		var tbody = $('<tbody/>').appendTo(nTable);
+		var dtClasses = dt.oClasses;
+
+		// Different locations for classes in DT2
+		var classes = DataTable.versionCheck('2')
+			? {
+					container: dtClasses.container,
+					scroller: dtClasses.scrolling.container,
+					body: dtClasses.scrolling.body
+			}
+			: {
+					container: dtClasses.sWrapper,
+					scroller: dtClasses.sScrollWrapper,
+					body: dtClasses.sScrollBody
+			};
+
+		var container = $(
+			'<div class="' +
+				classes.container +
+				' DTS"><div class="' +
+				classes.scroller +
+				'"><div class="' +
+				classes.body +
+				'"></div></div></div>'
+		);
+
+		// Want 3 rows in the sizing table so :first-child and :last-child
+		// CSS styles don't come into play - take the size of the middle row
+		$('tbody tr:lt(4)', origTable).clone().appendTo(tbody);
+		var rowsCount = $('tr', tbody).length;
+
+		if (rowsCount === 1) {
+			tbody.prepend('<tr><td>&#160;</td></tr>');
+			tbody.append('<tr><td>&#160;</td></tr>');
+		}
+		else {
+			for (; rowsCount < 3; rowsCount++) {
+				tbody.append('<tr><td>&#160;</td></tr>');
+			}
+		}
+
+		$('div.' + classes.body, container).append(nTable);
+
+		// If initialised using `dom`, use the holding element as the insert point
+		var insertEl = this.s.dt.nHolding || origTable.parentNode;
+
+		if (!$(insertEl).is(':visible')) {
+			insertEl = 'body';
+		}
+
+		// Remove form element links as they might select over others (particularly radio and checkboxes)
+		container.find('input').removeAttr('name');
+
+		container.appendTo(insertEl);
+		this.s.heights.row = $('tr', tbody).eq(1).outerHeight();
+
+		container.remove();
+	},
+
+	/**
+	 * Draw callback function which is fired when the DataTable is redrawn. The main function of
+	 * this method is to position the drawn table correctly the scrolling container for the rows
+	 * that is displays as a result of the scrolling position.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_draw: function () {
+		var that = this,
+			heights = this.s.heights,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iTableHeight = $(this.s.dt.nTable).height(),
+			displayStart = this.s.dt._iDisplayStart,
+			displayLen = this.s.dt._iDisplayLength,
+			displayEnd = this.s.dt.fnRecordsDisplay(),
+			viewportEndY = iScrollTop + heights.viewport;
+
+		// Disable the scroll event listener while we are updating the DOM
+		this.s.skip = true;
+
+		// If paging is reset
+		if (
+			(this.s.dt.bSorted || this.s.dt.bFiltered) &&
+			displayStart === 0 &&
+			!this.s.dt._drawHold
+		) {
+			this.s.topRowFloat = 0;
+		}
+
+		iScrollTop =
+			this.s.scrollType === 'jump'
+				? this._domain(
+					'virtualToPhysical',
+					this.s.topRowFloat * heights.row
+				)
+				: iScrollTop;
+
+		// Store positional information so positional calculations can be based
+		// upon the current table draw position
+		this.s.baseScrollTop = iScrollTop;
+		this.s.baseRowTop = this.s.topRowFloat;
+
+		// Position the table in the virtual scroller
+		var tableTop =
+			iScrollTop - (this.s.topRowFloat - displayStart) * heights.row;
+		if (displayStart === 0) {
+			tableTop = 0;
+		}
+		else if (displayStart + displayLen >= displayEnd) {
+			tableTop = heights.scroll - iTableHeight;
+		}
+		else {
+			var iTableBottomY = tableTop + iTableHeight;
+			if (iTableBottomY < viewportEndY) {
+				// The last row of the data is above the end of the viewport.
+				// This means the background is visible, which is not what the user expects.
+				var newTableTop = viewportEndY - iTableHeight;
+				var diffPx = newTableTop - tableTop;
+				this.s.baseScrollTop += diffPx + 1; // Update start row number in footer.
+				tableTop = newTableTop; // Move table so last line of data is at the bottom of the viewport.
+			}
+		}
+
+		this.dom.table.style.top = tableTop + 'px';
+
+		/* Cache some information for the scroller */
+		this.s.tableTop = tableTop;
+		this.s.tableBottom = iTableHeight + this.s.tableTop;
+
+		// Calculate the boundaries for where a redraw will be triggered by the
+		// scroll event listener
+		var boundaryPx = (iScrollTop - this.s.tableTop) * this.s.boundaryScale;
+		this.s.redrawTop = iScrollTop - boundaryPx;
+		this.s.redrawBottom =
+			iScrollTop + boundaryPx >
+			heights.scroll - heights.viewport - heights.row
+				? heights.scroll - heights.viewport - heights.row
+				: iScrollTop + boundaryPx;
+
+		this.s.skip = false;
+
+		if (that.s.ingnoreScroll) {
+			// Restore the scrolling position that was saved by DataTable's state
+			// saving Note that this is done on the second draw when data is Ajax
+			// sourced, and the first draw when DOM soured
+			if (
+				this.s.dt.oFeatures.bStateSave &&
+				this.s.dt.oLoadedState !== null &&
+				typeof this.s.dt.oLoadedState.scroller != 'undefined'
+			) {
+				// A quirk of DataTables is that the draw callback will occur on an
+				// empty set if Ajax sourced, but not if server-side processing.
+				var ajaxSourced =
+					(this.s.dt.sAjaxSource || that.s.dt.ajax) &&
+					!this.s.dt.oFeatures.bServerSide
+						? true
+						: false;
+
+				if (
+					(ajaxSourced && this.s.dt.iDraw >= 2) ||
+					(!ajaxSourced && this.s.dt.iDraw >= 1)
+				) {
+					setTimeout(function () {
+						$(that.dom.scroller).scrollTop(
+							that.s.dt.oLoadedState.scroller.scrollTop
+						);
+
+						// In order to prevent layout thrashing we need another
+						// small delay
+						setTimeout(function () {
+							that.s.ingnoreScroll = false;
+						}, 0);
+					}, 0);
+				}
+			}
+			else {
+				that.s.ingnoreScroll = false;
+			}
+		}
+
+		// Because of the order of the DT callbacks, the info update will
+		// take precedence over the one we want here. So a 'thread' break is
+		// needed.  Only add the thread break if bInfo is set
+		if (this.s.dt.oFeatures.bInfo) {
+			setTimeout(function () {
+				that._info.call(that);
+			}, 0);
+		}
+
+		$(this.s.dt.nTable).triggerHandler('position.dts.dt', tableTop);
+	},
+
+	/**
+	 * Convert from one domain to another. The physical domain is the actual
+	 * pixel count on the screen, while the virtual is if we had browsers which
+	 * had scrolling containers of infinite height (i.e. the absolute value)
+	 *
+	 *  @param {string} dir Domain transform direction, `virtualToPhysical` or
+	 *    `physicalToVirtual`
+	 *  @returns {number} Calculated transform
+	 *  @private
+	 */
+	_domain: function (dir, val) {
+		var heights = this.s.heights;
+		var diff;
+		var magic = 10000; // the point at which the non-linear calculations start to happen
+
+		// If the virtual and physical height match, then we use a linear
+		// transform between the two, allowing the scrollbar to be linear
+		if (heights.virtual === heights.scroll) {
+			return val;
+		}
+
+		// In the first 10k pixels and the last 10k pixels, we want the scrolling
+		// to be linear. After that it can be non-linear. It would be unusual for
+		// anyone to mouse wheel through that much.
+		if (val < magic) {
+			return val;
+		}
+		else if (
+			dir === 'virtualToPhysical' &&
+			val >= heights.virtual - magic
+		) {
+			diff = heights.virtual - val;
+			return heights.scroll - diff;
+		}
+		else if (dir === 'physicalToVirtual' && val >= heights.scroll - magic) {
+			diff = heights.scroll - val;
+			return heights.virtual - diff;
+		}
+
+		// Otherwise, we want a non-linear scrollbar to take account of the
+		// redrawing regions at the start and end of the table, otherwise these
+		// can stutter badly - on large tables 30px (for example) scroll might
+		// be hundreds of rows, so the table would be redrawing every few px at
+		// the start and end. Use a simple linear eq. to stop this, effectively
+		// causing a kink in the scrolling ratio. It does mean the scrollbar is
+		// non-linear, but with such massive data sets, the scrollbar is going
+		// to be a best guess anyway
+		var m =
+			(heights.virtual - magic - magic) /
+			(heights.scroll - magic - magic);
+		var c = magic - m * magic;
+
+		return dir === 'virtualToPhysical' ? (val - c) / m : m * val + c;
+	},
+
+	/**
+	 * Update any information elements that are controlled by the DataTable based on the scrolling
+	 * viewport and what rows are visible in it. This function basically acts in the same way as
+	 * _fnUpdateInfo in DataTables, and effectively replaces that function.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_info: function () {
+		if (!this.s.dt.oFeatures.bInfo) {
+			return;
+		}
+
+		var dt = this.s.dt,
+			dtApi = this.s.dtApi,
+			language = dt.oLanguage,
+			info = dtApi.page.info(),
+			total = info.recordsDisplay,
+			max = info.recordsTotal;
+
+		// If the scroll type is `cont` (continuous) we need to use `baseRowTop`, which
+		// also means we need to work out the difference between the current scroll position
+		// and the "base" for when it was required
+		var diffRows = (this.s.lastScrollTop - this.s.baseScrollTop) / this.s.heights.row;
+		var start = Math.floor(this.s.baseRowTop + diffRows) + 1;
+
+		// For a jump scroll type, we just use the straightforward calculation based on
+		// `topRowFloat`
+		if (this.s.scrollType === 'jump') {
+			start = Math.floor(this.s.topRowFloat) + 1;
+		}
+
+		var
+			possibleEnd = start + Math.floor(this.s.heights.viewport / this.s.heights.row),
+			end = possibleEnd > total ? total : possibleEnd,
+			result;
+
+		if (total === 0 && total == max) {
+			/* Empty record set */
+			result = language.sInfoEmpty + language.sInfoPostFix;
+		}
+		else if (total === 0) {
+			// Empty record set after filtering
+			result =
+				language.sInfoEmpty +
+				' ' +
+				language.sInfoFiltered +
+				language.sInfoPostFix;
+		}
+		else if (total == max) {
+			// Normal record set
+			result = language.sInfo + language.sInfoPostFix;
+		}
+		else {
+			// Record set after filtering
+			result = language.sInfo + ' ' + language.sInfoFiltered + language.sInfoPostFix;
+		}
+
+		result = this._macros(result, start, end, max, total);
+
+		var callback = language.fnInfoCallback;
+		if (callback) {
+			result = callback.call(
+				dt.oInstance,
+				dt,
+				start,
+				end,
+				max,
+				total,
+				result
+			);
+		}
+
+		// DT 1.x features
+		var n = dt.aanFeatures.i;
+		if (typeof n != 'undefined') {
+			for (var i = 0, iLen = n.length; i < iLen; i++) {
+				$(n[i]).html(result);
+			}
+
+			$(dt.nTable).triggerHandler('info.dt');
+		}
+
+		// DT 2.x features
+		$('div.dt-info', dtApi.table().container()).each(function () {
+			$(this).html(result);
+			dtApi.trigger('info', [dtApi.settings()[0], this, result]);
+		});
+	},
+
+	/**
+	 * String replacement for info display. Basically the same as what DataTables does.
+	 *
+	 * @param {*} str
+	 * @param {*} start
+	 * @param {*} end
+	 * @param {*} max
+	 * @param {*} total
+	 * @returns Formatted string
+	 */
+	_macros: function (str, start, end, max, total) {
+		var api = this.s.dtApi;
+		var settings = this.s.dt;
+		var formatter = settings.fnFormatNumber;
+
+		return str
+			.replace(/_START_/g, formatter.call(settings, start))
+			.replace(/_END_/g, formatter.call(settings, end))
+			.replace(/_MAX_/g, formatter.call(settings, max))
+			.replace(/_TOTAL_/g, formatter.call(settings, total))
+			.replace(/_ENTRIES_/g, api.i18n('entries', ''))
+			.replace(/_ENTRIES-MAX_/g, api.i18n('entries', '', max))
+			.replace(/_ENTRIES-TOTAL_/g, api.i18n('entries', '', total));
+	},
+
+	/**
+	 * Parse CSS height property string as number
+	 *
+	 * An attempt is made to parse the string as a number. Currently supported units are 'px',
+	 * 'vh', and 'rem'. 'em' is partially supported; it works as long as the parent element's
+	 * font size matches the body element. Zero is returned for unrecognized strings.
+	 *  @param {string} cssHeight CSS height property string
+	 *  @returns {number} height
+	 *  @private
+	 */
+	_parseHeight: function (cssHeight) {
+		var height;
+		var matches = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))(px|em|rem|vh)$/.exec(
+			cssHeight
+		);
+
+		if (matches === null) {
+			return 0;
+		}
+
+		var value = parseFloat(matches[1]);
+		var unit = matches[2];
+
+		if (unit === 'px') {
+			height = value;
+		}
+		else if (unit === 'vh') {
+			height = (value / 100) * $(window).height();
+		}
+		else if (unit === 'rem') {
+			height = value * parseFloat($(':root').css('font-size'));
+		}
+		else if (unit === 'em') {
+			height = value * parseFloat($('body').css('font-size'));
+		}
+
+		return height ? height : 0;
+	},
+
+	/**
+	 * Scrolling function - fired whenever the scrolling position is changed.
+	 * This method needs to use the stored values to see if the table should be
+	 * redrawn as we are moving towards the end of the information that is
+	 * currently drawn or not. If needed, then it will redraw the table based on
+	 * the new position.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_scroll: function () {
+		var that = this,
+			heights = this.s.heights,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iTopRow;
+
+		if (this.s.skip) {
+			return;
+		}
+
+		if (this.s.ingnoreScroll) {
+			return;
+		}
+
+		if (iScrollTop === this.s.lastScrollTop) {
+			return;
+		}
+
+		/* If the table has been sorted or filtered, then we use the redraw that
+		 * DataTables as done, rather than performing our own
+		 */
+		if (this.s.dt.bFiltered || this.s.dt.bSorted) {
+			this.s.lastScrollTop = 0;
+			return;
+		}
+
+		/* We don't want to state save on every scroll event - that's heavy
+		 * handed, so use a timeout to update the state saving only when the
+		 * scrolling has finished
+		 */
+		clearTimeout(this.s.stateTO);
+		this.s.stateTO = setTimeout(function () {
+			that.s.dtApi.state.save();
+
+			// We can also use this to ensure that the `info` element is correct
+			// since there can be a little scroll after the last scroll event!
+			that._info();
+		}, 250);
+
+		this.s.scrollType =
+			Math.abs(iScrollTop - this.s.lastScrollTop) > heights.viewport
+				? 'jump'
+				: 'cont';
+
+		this.s.topRowFloat =
+			this.s.scrollType === 'cont'
+				? this.pixelsToRow(iScrollTop, false, false)
+				: this._domain('physicalToVirtual', iScrollTop) / heights.row;
+
+		if (this.s.topRowFloat < 0) {
+			this.s.topRowFloat = 0;
+		}
+
+		/* Check if the scroll point is outside the trigger boundary which would required
+		 * a DataTables redraw
+		 */
+		if (
+			this.s.forceReposition ||
+			iScrollTop < this.s.redrawTop ||
+			iScrollTop > this.s.redrawBottom
+		) {
+			var preRows = Math.ceil(
+				((this.s.displayBuffer - 1) / 2) * this.s.viewportRows
+			);
+
+			iTopRow = parseInt(this.s.topRowFloat, 10) - preRows;
+			this.s.forceReposition = false;
+
+			if (iTopRow <= 0) {
+				/* At the start of the table */
+				iTopRow = 0;
+			}
+			else if (
+				iTopRow + this.s.dt._iDisplayLength >
+				this.s.dt.fnRecordsDisplay()
+			) {
+				/* At the end of the table */
+				iTopRow =
+					this.s.dt.fnRecordsDisplay() - this.s.dt._iDisplayLength;
+				if (iTopRow < 0) {
+					iTopRow = 0;
+				}
+			}
+			else if (iTopRow % 2 !== 0) {
+				// For the row-striping classes (odd/even) we want only to start
+				// on evens otherwise the stripes will change between draws and
+				// look rubbish
+				iTopRow++;
+			}
+
+			// Store calcuated value, in case the following condition is not met, but so
+			// that the draw function will still use it.
+			this.s.targetTop = iTopRow;
+
+			if (iTopRow != this.s.dt._iDisplayStart) {
+				/* Cache the new table position for quick lookups */
+				this.s.tableTop = $(this.s.dt.nTable).offset().top;
+				this.s.tableBottom =
+					$(this.s.dt.nTable).height() + this.s.tableTop;
+
+				var draw = function () {
+					that.s.dt._iDisplayStart = that.s.targetTop;
+					that.s.dtApi.draw('page');
+				};
+
+				/* Do the DataTables redraw based on the calculated start point - note that when
+				 * using server-side processing we introduce a small delay to not DoS the server...
+				 */
+				if (this.s.dt.oFeatures.bServerSide) {
+					this.s.forceReposition = true;
+
+					// This is used only for KeyTable and is not currently publicly
+					// documented. Open question - is it useful for anything else?
+					$(this.s.dt.nTable).triggerHandler('scroller-will-draw.dt');
+
+					if (DataTable.versionCheck('2')) {
+						that.s.dtApi.processing(true);
+					}
+					else {
+						this.s.dt.oApi._fnProcessingDisplay(this.s.dt, true);
+					}
+
+					clearTimeout(this.s.drawTO);
+					this.s.drawTO = setTimeout(draw, this.s.serverWait);
+				}
+				else {
+					draw();
+				}
+			}
+		}
+		else {
+			this.s.topRowFloat = this.pixelsToRow(iScrollTop, false, true);
+		}
+
+		/* Update the table's information display for what is now in the viewport */
+		this._info();
+
+		this.s.lastScrollTop = iScrollTop;
+		this.s.stateSaveThrottle();
+
+		if (this.s.scrollType === 'jump' && this.s.mousedown) {
+			this.s.labelVisible = true;
+		}
+		if (this.s.labelVisible) {
+			var labelFactor =
+				(heights.viewport - heights.labelHeight - heights.xbar) /
+				heights.scroll;
+
+			this.dom.label
+				.html(
+					this.s.dt.fnFormatNumber(
+						parseInt(this.s.topRowFloat, 10) + 1
+					)
+				)
+				.css('top', iScrollTop + iScrollTop * labelFactor)
+				.css('display', 'block');
+		}
+	},
+
+	/**
+	 * Force the scrolling container to have height beyond that of just the
+	 * table that has been drawn so the user can scroll the whole data set.
+	 *
+	 * Note that if the calculated required scrolling height exceeds a maximum
+	 * value (1 million pixels - hard-coded) the forcing element will be set
+	 * only to that maximum value and virtual / physical domain transforms will
+	 * be used to allow Scroller to display tables of any number of records.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_scrollForce: function () {
+		var heights = this.s.heights;
+		var max = 1000000;
+
+		heights.virtual = heights.row * this.s.dt.fnRecordsDisplay();
+		heights.scroll = heights.virtual;
+
+		if (heights.scroll > max) {
+			heights.scroll = max;
+		}
+
+		// Minimum height so there is always a row visible (the 'no rows found'
+		// if reduced to zero filtering)
+		this.dom.force.style.height =
+			heights.scroll > this.s.heights.row
+				? heights.scroll + 'px'
+				: this.s.heights.row + 'px';
+	}
+});
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Statics
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/**
+ * Scroller default settings for initialisation
+ *  @namespace
+ *  @name Scroller.defaults
+ *  @static
+ */
+Scroller.defaults = {
+	/**
+	 * Scroller uses the boundary scaling factor to decide when to redraw the table - which it
+	 * typically does before you reach the end of the currently loaded data set (in order to
+	 * allow the data to look continuous to a user scrolling through the data). If given as 0
+	 * then the table will be redrawn whenever the viewport is scrolled, while 1 would not
+	 * redraw the table until the currently loaded data has all been shown. You will want
+	 * something in the middle - the default factor of 0.5 is usually suitable.
+	 *  @type     float
+	 *  @default  0.5
+	 *  @static
+	 */
+	boundaryScale: 0.5,
+
+	/**
+	 * The display buffer is what Scroller uses to calculate how many rows it should pre-fetch
+	 * for scrolling. Scroller automatically adjusts DataTables' display length to pre-fetch
+	 * rows that will be shown in "near scrolling" (i.e. just beyond the current display area).
+	 * The value is based upon the number of rows that can be displayed in the viewport (i.e.
+	 * a value of 1), and will apply the display range to records before before and after the
+	 * current viewport - i.e. a factor of 3 will allow Scroller to pre-fetch 1 viewport's worth
+	 * of rows before the current viewport, the current viewport's rows and 1 viewport's worth
+	 * of rows after the current viewport. Adjusting this value can be useful for ensuring
+	 * smooth scrolling based on your data set.
+	 *  @type     int
+	 *  @default  9
+	 *  @static
+	 */
+	displayBuffer: 9,
+
+	/**
+	 * Scroller will attempt to automatically calculate the height of rows for it's internal
+	 * calculations. However the height that is used can be overridden using this parameter.
+	 *  @type     int|string
+	 *  @default  auto
+	 *  @static
+	 */
+	rowHeight: 'auto',
+
+	/**
+	 * When using server-side processing, Scroller will wait a small amount of time to allow
+	 * the scrolling to finish before requesting more data from the server. This prevents
+	 * you from DoSing your own server! The wait time can be configured by this parameter.
+	 *  @type     int
+	 *  @default  200
+	 *  @static
+	 */
+	serverWait: 200
+};
+
+Scroller.oDefaults = Scroller.defaults;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Constants
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/**
+ * Scroller version
+ *  @type      String
+ *  @default   See code
+ *  @name      Scroller.version
+ *  @static
+ */
+Scroller.version = '2.4.3';
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Initialisation
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on('preInit.dt.dtscroller', function (e, settings) {
+	if (e.namespace !== 'dt') {
+		return;
+	}
+
+	var init = settings.oInit.scroller;
+	var defaults = DataTable.defaults.scroller;
+
+	if (init || defaults) {
+		var opts = $.extend({}, init, defaults);
+
+		if (init !== false) {
+			new Scroller(settings, opts);
+		}
+	}
+});
+
+// Attach Scroller to DataTables so it can be accessed as an 'extra'
+$.fn.dataTable.Scroller = Scroller;
+$.fn.DataTable.Scroller = Scroller;
+
+// DataTables 1.10 API method aliases
+var Api = $.fn.dataTable.Api;
+
+Api.register('scroller()', function () {
+	return this;
+});
+
+// Undocumented and deprecated - is it actually useful at all?
+Api.register('scroller().rowToPixels()', function (rowIdx, intParse, virtual) {
+	var ctx = this.context;
+
+	if (ctx.length && ctx[0].oScroller) {
+		return ctx[0].oScroller.rowToPixels(rowIdx, intParse, virtual);
+	}
+	// undefined
+});
+
+// Undocumented and deprecated - is it actually useful at all?
+Api.register('scroller().pixelsToRow()', function (pixels, intParse, virtual) {
+	var ctx = this.context;
+
+	if (ctx.length && ctx[0].oScroller) {
+		return ctx[0].oScroller.pixelsToRow(pixels, intParse, virtual);
+	}
+	// undefined
+});
+
+// `scroller().scrollToRow()` is undocumented and deprecated. Use `scroller.toPosition()
+Api.register(
+	['scroller().scrollToRow()', 'scroller.toPosition()'],
+	function (idx, ani) {
+		this.iterator('table', function (ctx) {
+			if (ctx.oScroller) {
+				ctx.oScroller.scrollToRow(idx, ani);
+			}
+		});
+
+		return this;
+	}
+);
+
+Api.register('row().scrollTo()', function (ani) {
+	var that = this;
+
+	this.iterator('row', function (ctx, rowIdx) {
+		if (ctx.oScroller) {
+			var displayIdx = that
+				.rows({ order: 'applied', search: 'applied' })
+				.indexes()
+				.indexOf(rowIdx);
+
+			ctx.oScroller.scrollToRow(displayIdx, ani);
+		}
+	});
+
+	return this;
+});
+
+Api.register('scroller.measure()', function (redraw) {
+	this.iterator('table', function (ctx) {
+		if (ctx.oScroller) {
+			ctx.oScroller.measure(redraw);
+		}
+	});
+
+	return this;
+});
+
+Api.register('scroller.page()', function () {
+	var ctx = this.context;
+
+	if (ctx.length && ctx[0].oScroller) {
+		return ctx[0].oScroller.pageInfo();
+	}
+	// undefined
 });
 
 
@@ -27178,6 +28184,4561 @@ $.extend(true, DataTable.SearchPanes.classes, {
     showAll: 'dtsp-showAll btn btn-subtle',
     title: 'dtsp-title',
     titleRow: 'dtsp-titleRow'
+});
+
+
+return DataTable;
+}));
+
+
+/*! Select for DataTables 3.1.3
+ * © SpryMedia Ltd - datatables.net/license/mit
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+
+// Version information for debugger
+DataTable.select = {};
+
+DataTable.select.classes = {
+	checkbox: 'dt-select-checkbox'
+};
+
+DataTable.select.version = '3.1.3';
+
+DataTable.select.init = function (dt) {
+	var ctx = dt.settings()[0];
+
+	if (!DataTable.versionCheck('2')) {
+		throw 'Warning: Select requires DataTables 2 or newer';
+	}
+
+	if (ctx._select) {
+		return;
+	}
+
+	var savedSelected = dt.state.loaded();
+
+	var selectAndSave = function (e, settings, data) {
+		if (data === null || data.select === undefined) {
+			return;
+		}
+
+		// Clear any currently selected rows, before restoring state
+		// None will be selected on first initialisation
+		if (dt.rows({ selected: true }).any()) {
+			dt.rows().deselect();
+		}
+		if (data.select.rows !== undefined) {
+			dt.rows(data.select.rows).select();
+		}
+
+		if (dt.columns({ selected: true }).any()) {
+			dt.columns().deselect();
+		}
+		if (data.select.columns !== undefined) {
+			dt.columns(data.select.columns).select();
+		}
+
+		if (dt.cells({ selected: true }).any()) {
+			dt.cells().deselect();
+		}
+		if (data.select.cells !== undefined) {
+			for (var i = 0; i < data.select.cells.length; i++) {
+				dt.cell(data.select.cells[i].row, data.select.cells[i].column).select();
+			}
+		}
+
+		dt.state.save();
+	};
+
+	dt.on('stateSaveParams', function (e, settings, data) {
+		data.select = {};
+		data.select.rows = dt.rows({ selected: true }).ids(true).toArray();
+		data.select.columns = dt.columns({ selected: true })[0];
+		data.select.cells = dt.cells({ selected: true })[0].map(function (coords) {
+			return { row: dt.row(coords.row).id(true), column: coords.column };
+		});
+	})
+		.on('stateLoadParams', selectAndSave)
+		.one('init', function () {
+			selectAndSave(undefined, undefined, savedSelected);
+		});
+
+	var init = ctx.oInit.select;
+	var defaults = DataTable.defaults.select;
+	var opts = init === undefined ? defaults : init;
+
+	// Set defaults
+	var items = 'row';
+	var style = 'api';
+	var blurable = false;
+	var toggleable = true;
+	var selectable = null;
+	var info = true;
+	var selector = 'td, th';
+	var className = 'selected';
+	var headerCheckbox = true;
+	var setStyle = false;
+	var keys = false;
+	var keysWrap = false;
+
+	ctx._select = {
+		infoEls: []
+	};
+
+	// Initialisation customisations
+	if (opts === true) {
+		style = 'os';
+		setStyle = true;
+	}
+	else if (typeof opts === 'string') {
+		style = opts;
+		setStyle = true;
+	}
+	else if ($.isPlainObject(opts)) {
+		if (opts.blurable !== undefined) {
+			blurable = opts.blurable;
+		}
+
+		if (opts.toggleable !== undefined) {
+			toggleable = opts.toggleable;
+		}
+
+		if (opts.info !== undefined) {
+			info = opts.info;
+		}
+
+		if (opts.items !== undefined) {
+			items = opts.items;
+		}
+
+		if (opts.style !== undefined) {
+			style = opts.style;
+			setStyle = true;
+		}
+		else {
+			style = 'os';
+			setStyle = true;
+		}
+
+		if (opts.selector !== undefined) {
+			selector = opts.selector;
+		}
+
+		if (opts.className !== undefined) {
+			className = opts.className;
+		}
+
+		if (opts.headerCheckbox !== undefined) {
+			headerCheckbox = opts.headerCheckbox;
+		}
+
+		if (opts.selectable !== undefined) {
+			selectable = opts.selectable;
+		}
+
+		if (opts.keys !== undefined) {
+			keys = opts.keys;
+		}
+
+		if (opts.keysWrap !== undefined) {
+			keysWrap = opts.keysWrap;
+		}
+	}
+
+	dt.select.selector(selector);
+	dt.select.items(items);
+	dt.select.style(style);
+	dt.select.blurable(blurable);
+	dt.select.toggleable(toggleable);
+	dt.select.info(info);
+	dt.select.keys(keys, keysWrap);
+	dt.select.selectable(selectable);
+	ctx._select.className = className;
+
+	// If the init options haven't enabled select, but there is a selectable
+	// class name, then enable
+	if (!setStyle && $(dt.table().node()).hasClass('selectable')) {
+		dt.select.style('os');
+	}
+
+	// Insert a checkbox into the header if needed - might need to wait
+	// for init complete
+	if (headerCheckbox || headerCheckbox === 'select-page' || headerCheckbox === 'select-all') {
+		dt.ready(function () {
+			initCheckboxHeader(dt, headerCheckbox);
+		});
+	}
+};
+
+/*
+
+Select is a collection of API methods, event handlers, event emitters and
+buttons (for the `Buttons` extension) for DataTables. It provides the following
+features, with an overview of how they are implemented:
+
+## Selection of rows, columns and cells. Whether an item is selected or not is
+   stored in:
+
+* rows: a `_select_selected` property which contains a boolean value of the
+  DataTables' `aoData` object for each row
+* columns: a `_select_selected` property which contains a boolean value of the
+  DataTables' `aoColumns` object for each column
+* cells: a `_selected_cells` property which contains an array of boolean values
+  of the `aoData` object for each row. The array is the same length as the
+  columns array, with each element of it representing a cell.
+
+This method of using boolean flags allows Select to operate when nodes have not
+been created for rows / cells (DataTables' defer rendering feature).
+
+## API methods
+
+A range of API methods are available for triggering selection and de-selection
+of rows. Methods are also available to configure the selection events that can
+be triggered by an end user (such as which items are to be selected). To a large
+extent, these of API methods *is* Select. It is basically a collection of helper
+functions that can be used to select items in a DataTable.
+
+Configuration of select is held in the object `_select` which is attached to the
+DataTables settings object on initialisation. Select being available on a table
+is not optional when Select is loaded, but its default is for selection only to
+be available via the API - so the end user wouldn't be able to select rows
+without additional configuration.
+
+The `_select` object contains the following properties:
+
+```
+{
+	items:string       - Can be `rows`, `columns` or `cells`. Defines what item 
+	                     will be selected if the user is allowed to activate row
+	                     selection using the mouse.
+	style:string       - Can be `none`, `single`, `multi` or `os`. Defines the
+	                     interaction style when selecting items
+	blurable:boolean   - If row selection can be cleared by clicking outside of
+	                     the table
+	toggleable:boolean - If row selection can be cancelled by repeated clicking
+	                     on the row
+	info:boolean       - If the selection summary should be shown in the table
+	                     information elements
+	infoEls:element[]  - List of HTML elements with info elements for a table
+}
+```
+
+In addition to the API methods, Select also extends the DataTables selector
+options for rows, columns and cells adding a `selected` option to the selector
+options object, allowing the developer to select only selected items or
+unselected items.
+
+## Mouse selection of items
+
+Clicking on items can be used to select items. This is done by a simple event
+handler that will select the items using the API methods.
+
+ */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Local functions
+ */
+
+/**
+ * Add one or more cells to the selection when shift clicking in OS selection
+ * style cell selection.
+ *
+ * Cell range is more complicated than row and column as we want to select
+ * in the visible grid rather than by index in sequence. For example, if you
+ * click first in cell 1-1 and then shift click in 2-2 - cells 1-2 and 2-1
+ * should also be selected (and not 1-3, 1-4. etc)
+ *
+ * @param  {DataTable.Api} dt   DataTable
+ * @param  {object}        idx  Cell index to select to
+ * @param  {object}        last Cell index to select from
+ * @private
+ */
+function cellRange(dt, idx, last) {
+	var indexes;
+	var columnIndexes;
+	var rowIndexes;
+	var selectColumns = function (start, end) {
+		if (start > end) {
+			var tmp = end;
+			end = start;
+			start = tmp;
+		}
+
+		var record = false;
+		return dt
+			.columns(':visible')
+			.indexes()
+			.filter(function (i) {
+				if (i === start) {
+					record = true;
+				}
+
+				if (i === end) {
+					// not else if, as start might === end
+					record = false;
+					return true;
+				}
+
+				return record;
+			});
+	};
+
+	var selectRows = function (start, end) {
+		var indexes = dt.rows({ search: 'applied' }).indexes();
+
+		// Which comes first - might need to swap
+		if (indexes.indexOf(start) > indexes.indexOf(end)) {
+			var tmp = end;
+			end = start;
+			start = tmp;
+		}
+
+		var record = false;
+		return indexes.filter(function (i) {
+			if (i === start) {
+				record = true;
+			}
+
+			if (i === end) {
+				record = false;
+				return true;
+			}
+
+			return record;
+		});
+	};
+
+	if (!dt.cells({ selected: true }).any() && !last) {
+		// select from the top left cell to this one
+		columnIndexes = selectColumns(0, idx.column);
+		rowIndexes = selectRows(0, idx.row);
+	}
+	else {
+		// Get column indexes between old and new
+		columnIndexes = selectColumns(last.column, idx.column);
+		rowIndexes = selectRows(last.row, idx.row);
+	}
+
+	indexes = dt.cells(rowIndexes, columnIndexes).flatten();
+
+	if (!dt.cells(idx, { selected: true }).any()) {
+		// Select range
+		dt.cells(indexes).select();
+	}
+	else {
+		// Deselect range
+		dt.cells(indexes).deselect();
+	}
+}
+
+/**
+ * Get the class
+ * @returns 
+ */
+function checkboxClass(selector) {
+	var name = DataTable.select.classes.checkbox;
+
+	return selector
+		? name.replace(/ /g, '.')
+		: name;
+}
+
+/**
+ * Disable mouse selection by removing the selectors
+ *
+ * @param {DataTable.Api} dt DataTable to remove events from
+ * @private
+ */
+function disableMouseSelection(dt) {
+	var ctx = dt.settings()[0];
+	var selector = ctx._select.selector;
+
+	$(dt.table().container())
+		.off('mousedown.dtSelect', selector)
+		.off('mouseup.dtSelect', selector)
+		.off('click.dtSelect', selector);
+
+	$('body').off('click.dtSelect' + _safeId(dt.table().node()));
+}
+
+/**
+ * Attach mouse listeners to the table to allow mouse selection of items
+ *
+ * @param {DataTable.Api} dt DataTable to remove events from
+ * @private
+ */
+function enableMouseSelection(dt) {
+	var container = $(dt.table().container());
+	var ctx = dt.settings()[0];
+	var selector = ctx._select.selector;
+	var matchSelection;
+
+	container
+		.on('mousedown.dtSelect', selector, function (e) {
+			// Disallow text selection for shift clicking on the table so multi
+			// element selection doesn't look terrible!
+			if (e.shiftKey || e.metaKey || e.ctrlKey) {
+				container
+					.css('-moz-user-select', 'none')
+					.one('selectstart.dtSelect', selector, function () {
+						return false;
+					});
+			}
+
+			if (window.getSelection) {
+				matchSelection = window.getSelection();
+			}
+		})
+		.on('mouseup.dtSelect', selector, function () {
+			// Allow text selection to occur again, Mozilla style (tested in FF
+			// 35.0.1 - still required)
+			container.css('-moz-user-select', '');
+		})
+		.on('click.dtSelect', selector, function (e) {
+			var items = dt.select.items();
+			var idx;
+
+			// If text was selected (click and drag), then we shouldn't change
+			// the row's selected state
+			if (matchSelection) {
+				var selection = window.getSelection();
+
+				// If the element that contains the selection is not in the table, we can ignore it
+				// This can happen if the developer selects text from the click event
+				if (
+					!selection.anchorNode ||
+					$(selection.anchorNode).closest('table')[0] === dt.table().node()
+				) {
+					if (selection !== matchSelection) {
+						return;
+					}
+				}
+			}
+
+			var ctx = dt.settings()[0];
+			var container = dt.table().container();
+
+			// Ignore clicks inside a sub-table
+			if ($(e.target).closest('div.dt-container')[0] != container) {
+				return;
+			}
+
+			var cell = dt.cell($(e.target).closest('td, th'));
+
+			// Check the cell actually belongs to the host DataTable (so child
+			// rows, etc, are ignored)
+			if (!cell.any()) {
+				return;
+			}
+
+			var event = $.Event('user-select.dt');
+			eventTrigger(dt, event, [items, cell, e]);
+
+			if (event.isDefaultPrevented()) {
+				return;
+			}
+
+			var cellIndex = cell.index();
+			if (items === 'row') {
+				idx = cellIndex.row;
+				typeSelect(e, dt, ctx, 'row', idx);
+			}
+			else if (items === 'column') {
+				idx = cell.index().column;
+				typeSelect(e, dt, ctx, 'column', idx);
+			}
+			else if (items === 'cell') {
+				idx = cell.index();
+				typeSelect(e, dt, ctx, 'cell', idx);
+			}
+
+			ctx._select_lastCell = cellIndex;
+		});
+
+	// Blurable
+	$('body').on('click.dtSelect' + _safeId(dt.table().node()), function (e) {
+		if (ctx._select.blurable) {
+			// If the click was inside the DataTables container, don't blur
+			if ($(e.target).parents().filter(dt.table().container()).length) {
+				return;
+			}
+
+			// Ignore elements which have been removed from the DOM (i.e. paging
+			// buttons)
+			if ($(e.target).parents('html').length === 0) {
+				return;
+			}
+
+			// Don't blur in Editor form
+			if ($(e.target).parents('div.DTE').length) {
+				return;
+			}
+
+			var event = $.Event('select-blur.dt');
+			eventTrigger(dt, event, [e.target, e]);
+
+			if (event.isDefaultPrevented()) {
+				return;
+			}
+
+			clear(ctx, true);
+		}
+	});
+}
+
+/**
+ * Trigger an event on a DataTable
+ *
+ * @param {DataTable.Api} api      DataTable to trigger events on
+ * @param  {boolean}      selected true if selected, false if deselected
+ * @param  {string}       type     Item type acting on
+ * @param  {boolean}      any      Require that there are values before
+ *     triggering
+ * @private
+ */
+function eventTrigger(api, type, args, any) {
+	if (any && !api.flatten().length) {
+		return;
+	}
+
+	if (typeof type === 'string') {
+		type = type + '.dt';
+	}
+
+	args.unshift(api);
+
+	$(api.table().node()).trigger(type, args);
+}
+
+/**
+ * Determine if a column is a checkbox column
+ * @param {*} col DataTables column object
+ * @returns 
+ */
+function isCheckboxColumn(col) {
+	return col.mRender && col.mRender._name === 'selectCheckbox';
+}
+
+/**
+ * Update the information element of the DataTable showing information about the
+ * items selected. This is done by adding tags to the existing text
+ *
+ * @param {DataTable.Api} api DataTable to update
+ * @private
+ */
+function info(api, node) {
+	if (api.select.style() === 'api' || api.select.info() === false) {
+		return;
+	}
+
+	var ctx = api.settings()[0];
+	var rowSet = ctx._select_set;
+
+	// Check that the ids are still in ctx.aIds - row might have been deleted before it was
+	// unselected
+	if (! api.page.info().serverSide) {
+		for (var i=rowSet.length-1 ; i>=0 ; i--) {
+			if (! ctx.aIds[rowSet[i]]) {
+				rowSet.splice(i, 1);
+			}
+		}
+	}
+
+	var rows = rowSet.length ? rowSet.length : api.rows({ selected: true }).count();
+	var columns = api.columns({ selected: true }).count();
+	var cells = api.cells({ selected: true }).count();
+
+	// If subtractive selection, then we need to take the number of rows and
+	// subtract those that have been deselected
+	if (ctx._select_mode === 'subtractive') {
+		rows = api.page.info().recordsDisplay - rowSet.length;
+	}
+
+	var add = function (el, name, num) {
+		el.append(
+			$('<span class="select-item"/>').append(
+				api.i18n(
+					'select.' + name + 's',
+					{ _: '%d ' + name + 's selected', 0: '', 1: '1 ' + name + ' selected' },
+					num
+				)
+			)
+		);
+	};
+
+	var el = $(node);
+	var output = $('<span class="select-info"/>');
+
+	add(output, 'row', rows);
+	add(output, 'column', columns);
+	add(output, 'cell', cells);
+
+	var existing = el.children('span.select-info');
+
+	if (existing.length) {
+		existing.remove();
+	}
+
+	if (output.text() !== '') {
+		el.append(output);
+	}
+}
+
+/**
+ * Add a checkbox to the header for checkbox columns, allowing all rows to
+ * be selected, deselected or just to show the state.
+ *
+ * @param {*} dt API
+ * @param {*} headerCheckbox the header checkbox option
+ */
+function initCheckboxHeader( dt, headerCheckbox ) {
+	var dtSettings = dt.settings()[0];
+	var dtInternalColumns = dtSettings.aoColumns;
+
+	// Find any checkbox column(s)
+	dt.columns().iterator('column', function (s, idx) {
+		var col = dtInternalColumns[idx];
+
+		// Checkbox columns have a rendering function with a given name
+		if (! isCheckboxColumn(col)) {
+			return;
+		}
+
+		var header = dt.column(idx).header();
+		var liner = $('div.dt-column-header', header);
+
+		// DataTables 2.3 as an extra wrapper element
+		if (liner.length) {
+			header = liner;
+		}
+
+		if (! $('input', header).length) {
+			// If no checkbox yet, insert one
+			var input = $('<input>')
+				.attr({
+					class: checkboxClass(false),
+					type: 'checkbox',
+					'aria-label': dt.i18n('select.aria.headerCheckbox') || 'Select all rows'
+				})
+				.appendTo(header)
+				.on('change', function () {
+					if (this.checked) {
+						if (headerCheckbox == 'select-page') {
+							dt.rows({page: 'current'}).select();
+						}
+						else {
+							dt.rows({search: 'applied'}).select();
+						}
+					}
+					else {
+						if (headerCheckbox == 'select-page') {
+							dt.rows({page: 'current', selected: true}).deselect();
+						}
+						else {
+							dt.rows({selected: true}).deselect();
+						}
+					}
+				})
+				.on('click', function (e) {
+					e.stopPropagation();
+				});
+
+			// Update the header checkbox's state when the selection in the
+			// table changes
+			dt.on('draw select deselect', function (e, pass, type) {
+				if (type === 'row' || ! type) {
+					var nums = headerCheckboxState(dt, headerCheckbox);
+
+					if (nums.search && nums.search <= nums.count && nums.search === nums.available) {
+						input
+							.prop('checked', true)
+							.prop('indeterminate', false);
+					}
+					else if (nums.search === 0 && nums.count === 0) {
+						input
+							.prop('checked', false)
+							.prop('indeterminate', false);
+					}
+					else {
+						input
+							.prop('checked', false)
+							.prop('indeterminate', true);
+					}
+				}
+			});
+		}
+	});
+}
+
+function keysSet(dt) {
+	var ctx = dt.settings()[0];
+	var flag = ctx._select.keys;
+	var wrap = ctx._select.keysWrap;
+	var namespace = 'dts-keys-' + ctx.sTableId;
+
+	if (flag) {
+		// Need a tabindex of the `tr` elements to make them focusable by the browser
+		$(dt.rows({page: 'current'}).nodes()).attr('tabindex', 0);
+
+		dt.on('draw.' + namespace, function () {
+			$(dt.rows({page: 'current'}).nodes()).attr('tabindex', 0);
+		});
+
+		// Listen on document for tab, up and down
+		$(document).on('keydown.' + namespace, function (e) {
+			var key = e.keyCode;
+			var active = document.activeElement;
+
+			// Can't use e.key as it wasn't widely supported until 2017
+			// 9 Tab
+			// 13 Return
+			// 32 Space
+			// 38 ArrowUp
+			// 40 ArrowDown
+			if (! [9, 13, 32, 38, 40].includes(key)) {
+				return;
+			}
+
+			var nodes = dt.rows({page: 'current'}).nodes().toArray();
+			var idx = nodes.indexOf(active);
+			var preventDefault = true;
+			var pageInfo = dt.page.info();
+
+			// Only take an action if a row has focus
+			if (idx === -1) {
+				return;
+			}
+
+			if (key === 9) {
+				// Tab focus change
+				if (e.shift === false && idx === nodes.length - 1) {
+					keysPageChange(dt, 'next', ':first-child');
+				}
+				else if (e.shift === true && idx === 0) {
+					keysPageChange(dt, 'previous', ':last-child');
+				}
+				else {
+					// Browser will do it for us
+					preventDefault = false;
+				}
+			}
+			else if (key === 13 || key === 32) {
+				// Row selection / deselection
+				var row = dt.row(active);
+
+				if (row.selected()) {
+					row.deselect();
+				}
+				else {
+					row.select();
+				}
+			}
+			else if (key === 38) {
+				// Move up
+				if (idx > 0) {
+					nodes[idx-1].focus();
+				}
+				else if (pageInfo.start > 0) {
+					// Shift back to the previous page
+					keysPageChange(dt, 'previous', ':last-child');
+				}
+				else if (wrap) {
+					// Wrap
+					keysPageChange(dt, 'last', ':last-child');
+				}
+			}
+			else {
+				// Move down
+				if (idx < nodes.length -1) {
+					nodes[idx+1].focus();
+				}
+				else if (pageInfo.page < pageInfo.pages-1) {
+					// Move on to the next page
+					keysPageChange(dt, 'next', ':first-child');
+				}
+				else if (wrap) {
+					// Wrap
+					keysPageChange(dt, 'first', ':first-child');
+				}
+			}
+
+			if (preventDefault) {
+				e.stopPropagation();
+				e.preventDefault();
+			}
+		});
+	}
+	else {
+		// Stop the rows from being able to gain focus
+		$(dt.rows().nodes()).removeAttr('tabindex');
+
+		// Nuke events
+		dt.off('draw.' + namespace);
+		$(document).off('keydown.' + namespace);
+	}
+}
+
+/**
+ * Change change to a new page and focus
+ *
+ * @param {DataTable.Api} dt DataTable instance
+ */
+function keysPageChange(dt, page, focus) {
+	dt
+		.one('draw', function () {
+			dt.row(focus).node().focus();
+		})
+		.page(page)
+		.draw(false);
+}
+
+/**
+ * Determine the counts used to define the header checkbox's state
+ *
+ * @param {*} dt DT API
+ * @param {*} headerCheckbox Configuration for what the header checkbox does
+ * @returns Counts object
+ */
+function headerCheckboxState(dt, headerCheckbox) {
+	var ctx = dt.settings()[0];
+	var selectable = ctx._select.selectable;
+	var available = 0;
+	var count = headerCheckbox == 'select-page'
+		? dt.rows({page: 'current', selected: true}).count()
+		: dt.rows({selected: true}).count();
+	var search = headerCheckbox == 'select-page'
+		? dt.rows({page: 'current', selected: true}).count()
+		: dt.rows({search: 'applied', selected: true}).count();
+
+	if (! selectable) {
+		available = headerCheckbox == 'select-page'
+			? dt.rows({page: 'current'}).count()
+			: dt.rows({search: 'applied'}).count();	
+	}
+	else {
+		// Need to count how many rows are actually selectable to know if all selectable
+		// rows are selected or not
+		var indexes = headerCheckbox == 'select-page'
+			? dt.rows({page: 'current'}).indexes()
+			: dt.rows({search: 'applied'}).indexes();
+
+		for (var i=0 ; i<indexes.length ; i++) {
+			// For speed I use the internal DataTables object.
+			var rowInternal = ctx.aoData[indexes[i]];
+			var result = selectable(rowInternal._aData, rowInternal.nTr, indexes[i]);
+
+			if (result) {
+				available++;
+			}
+		}
+	}
+
+	return {
+		available: available,
+		count: count,
+		search: search
+	}
+}
+
+/**
+ * Initialisation of a new table. Attach event handlers and callbacks to allow
+ * Select to operate correctly.
+ *
+ * This will occur _after_ the initial DataTables initialisation, although
+ * before Ajax data is rendered, if there is ajax data
+ *
+ * @param  {DataTable.settings} ctx Settings object to operate on
+ * @private
+ */
+function init(ctx) {
+	var api = new DataTable.Api(ctx);
+	ctx._select_init = true;
+
+	// When `additive` then `_select_set` contains a list of the row ids that
+	// are selected. If `subtractive` then all rows are selected, except those
+	// in `_select_set`, which is a list of ids.
+	ctx._select_mode = 'additive';
+	ctx._select_set = [];
+
+	// Row callback so that classes can be added to rows and cells if the item
+	// was selected before the element was created. This will happen with the
+	// `deferRender` option enabled.
+	//
+	// This method of attaching to `aoRowCreatedCallback` is a hack until
+	// DataTables has proper events for row manipulation If you are reviewing
+	// this code to create your own plug-ins, please do not do this!
+	ctx.aoRowCreatedCallback.push(function (row, data, index) {
+			var i, ien;
+			var d = ctx.aoData[index];
+			var id = api.row(index).id();
+
+			// Row
+			if (
+				d._select_selected ||
+				(ctx._select_mode === 'additive' && ctx._select_set.includes(id)) ||
+				(ctx._select_mode === 'subtractive' && ! ctx._select_set.includes(id))
+			) {
+				d._select_selected = true;
+
+				$(row)
+					.addClass(ctx._select.className)
+					.find('input.' + checkboxClass(true)).prop('checked', true);
+			}
+
+			// Cells and columns - if separated out, we would need to do two
+			// loops, so it makes sense to combine them into a single one
+			for (i = 0, ien = ctx.aoColumns.length; i < ien; i++) {
+				if (
+					ctx.aoColumns[i]._select_selected ||
+					(d._selected_cells && d._selected_cells[i])
+				) {
+					$(d.anCells[i]).addClass(ctx._select.className)
+				}
+			}
+		}
+	);
+
+	_cumulativeEvents(api);
+
+	// Update the table information element with selected item summary
+	api.on('info.dt', function (e, ctx, node) {
+		// Store the info node for updating on select / deselect
+		if (!ctx._select.infoEls.includes(node)) {
+			ctx._select.infoEls.push(node);
+		}
+
+		info(api, node);
+	});
+
+	api.on('select.dtSelect.dt deselect.dtSelect.dt', function () {
+		ctx._select.infoEls.forEach(function (el) {
+			info(api, el);
+		});
+
+		api.state.save();
+	});
+
+	// Clean up and release
+	api.on('destroy.dtSelect', function () {
+		// Remove class directly rather than calling deselect - which would trigger events
+		$(api.rows({ selected: true }).nodes()).removeClass(api.settings()[0]._select.className);
+
+		$('input.' + checkboxClass(true), api.table().header()).remove();
+
+		disableMouseSelection(api);
+		api.off('.dtSelect');
+		$('body').off('.dtSelect' + _safeId(api.table().node()));
+	});
+}
+
+/**
+ * Add one or more items (rows or columns) to the selection when shift clicking
+ * in OS selection style
+ *
+ * @param  {DataTable.Api} dt   DataTable
+ * @param  {string}        type Row or column range selector
+ * @param  {object}        idx  Item index to select to
+ * @param  {object}        last Item index to select from
+ * @private
+ */
+function rowColumnRange(dt, type, idx, last) {
+	// Add a range of rows from the last selected row to this one
+	var indexes = dt[type + 's']({ search: 'applied' }).indexes();
+	var idx1 = indexes.indexOf(last);
+	var idx2 = indexes.indexOf(idx);
+
+	if (!dt[type + 's']({ selected: true }).any() && idx1 === -1) {
+		// select from top to here - slightly odd, but both Windows and Mac OS
+		// do this
+		indexes.splice(indexes.indexOf(idx) + 1, indexes.length);
+	}
+	else {
+		// reverse so we can shift click 'up' as well as down
+		if (idx1 > idx2) {
+			var tmp = idx2;
+			idx2 = idx1;
+			idx1 = tmp;
+		}
+
+		indexes.splice(idx2 + 1, indexes.length);
+		indexes.splice(0, idx1);
+	}
+
+	if (!dt[type](idx, { selected: true }).any()) {
+		// Select range
+		dt[type + 's'](indexes).select();
+	}
+	else {
+		// Deselect range - need to keep the clicked on row selected
+		indexes.splice(indexes.indexOf(idx), 1);
+		dt[type + 's'](indexes).deselect();
+	}
+}
+
+/**
+ * Clear all selected items
+ *
+ * @param  {DataTable.settings} ctx Settings object of the host DataTable
+ * @param  {boolean} [force=false] Force the de-selection to happen, regardless
+ *     of selection style
+ * @private
+ */
+function clear(ctx, force) {
+	if (force || ctx._select.style === 'single') {
+		var api = new DataTable.Api(ctx);
+
+		api.rows({ selected: true }).deselect();
+		api.columns({ selected: true }).deselect();
+		api.cells({ selected: true }).deselect();
+	}
+}
+
+/**
+ * Select items based on the current configuration for style and items.
+ *
+ * @param  {object}             e    Mouse event object
+ * @param  {DataTables.Api}     dt   DataTable
+ * @param  {DataTable.settings} ctx  Settings object of the host DataTable
+ * @param  {string}             type Items to select
+ * @param  {int|object}         idx  Index of the item to select
+ * @private
+ */
+function typeSelect(e, dt, ctx, type, idx) {
+	var style = dt.select.style();
+	var toggleable = dt.select.toggleable();
+	var isSelected = dt[type](idx, { selected: true }).any();
+
+	if (isSelected && !toggleable) {
+		return;
+	}
+
+	if (style === 'os') {
+		if (e.ctrlKey || e.metaKey) {
+			// Add or remove from the selection
+			dt[type](idx).select(!isSelected);
+		}
+		else if (e.shiftKey) {
+			if (type === 'cell') {
+				cellRange(dt, idx, ctx._select_lastCell || null);
+			}
+			else {
+				rowColumnRange(
+					dt,
+					type,
+					idx,
+					ctx._select_lastCell ? ctx._select_lastCell[type] : null
+				);
+			}
+		}
+		else {
+			// No cmd or shift click - deselect if selected, or select
+			// this row only
+			var selected = dt[type + 's']({ selected: true });
+
+			if (isSelected && selected.flatten().length === 1) {
+				dt[type](idx).deselect();
+			}
+			else {
+				selected.deselect();
+				dt[type](idx).select();
+			}
+		}
+	}
+	else if (style == 'multi+shift') {
+		if (e.shiftKey) {
+			if (type === 'cell') {
+				cellRange(dt, idx, ctx._select_lastCell || null);
+			}
+			else {
+				rowColumnRange(
+					dt,
+					type,
+					idx,
+					ctx._select_lastCell ? ctx._select_lastCell[type] : null
+				);
+			}
+		}
+		else {
+			dt[type](idx).select(!isSelected);
+		}
+	}
+	else {
+		dt[type](idx).select(!isSelected);
+	}
+}
+
+function _safeId(node) {
+	return node.id.replace(/[^a-zA-Z0-9\-\_]/g, '-');
+}
+
+/**
+ * Set up event handlers for cumulative selection
+ *
+ * @param {*} api DT API instance
+ */
+function _cumulativeEvents(api) {
+	// Add event listeners to add / remove from the _select_set
+	api.on('select', function (e, dt, type, indexes) {
+		// Only support for rows at the moment
+		if (type !== 'row') {
+			return;
+		}
+
+		var ctx = api.settings()[0];
+
+		if (ctx._select_mode === 'additive') {
+			// Add row to the selection list if it isn't already there
+			_add(api, ctx._select_set, indexes);
+		}
+		else {
+			// Subtractive - if a row is selected it should not in the list
+			// as in subtractive mode the list gives the rows which are not
+			// selected
+			_remove(api, ctx._select_set, indexes);
+		}
+	});
+
+	api.on('deselect', function (e, dt, type, indexes) {
+		// Only support for rows at the moment
+		if (type !== 'row') {
+			return;
+		}
+
+		var ctx = api.settings()[0];
+
+		if (ctx._select_mode === 'additive') {
+			// List is of those rows selected, so remove it
+			_remove(api, ctx._select_set, indexes);
+		}
+		else {
+			// List is of rows which are deselected, so add it!
+			_add(api, ctx._select_set, indexes);
+		}
+	});
+}
+
+function _add(api, arr, indexes) {
+	for (var i=0 ; i<indexes.length ; i++) {
+		var id = api.row(indexes[i]).id();
+
+		if (id && id !== 'undefined' && ! arr.includes(id)) {
+			arr.push(id);
+		}
+	}
+}
+
+function _remove(api, arr, indexes) {
+	for (var i=0 ; i<indexes.length ; i++) {
+		var id = api.row(indexes[i]).id();
+		var idx = arr.indexOf(id);
+
+		if (idx !== -1) {
+			arr.splice(idx, 1);
+		}
+	}
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables selectors
+ */
+
+// row and column are basically identical just assigned to different properties
+// and checking a different array, so we can dynamically create the functions to
+// reduce the code size
+$.each(
+	[
+		{ type: 'row', prop: 'aoData' },
+		{ type: 'column', prop: 'aoColumns' }
+	],
+	function (i, o) {
+		DataTable.ext.selector[o.type].push(function (settings, opts, indexes) {
+			var selected = opts.selected;
+			var data;
+			var out = [];
+
+			if (selected !== true && selected !== false) {
+				return indexes;
+			}
+
+			for (var i = 0, ien = indexes.length; i < ien; i++) {
+				data = settings[o.prop][indexes[i]];
+
+				if (
+					data && (
+						(selected === true && data._select_selected === true) ||
+						(selected === false && !data._select_selected)
+					)
+				) {
+					out.push(indexes[i]);
+				}
+			}
+
+			return out;
+		});
+	}
+);
+
+DataTable.ext.selector.cell.push(function (settings, opts, cells) {
+	var selected = opts.selected;
+	var rowData;
+	var out = [];
+
+	if (selected === undefined) {
+		return cells;
+	}
+
+	for (var i = 0, ien = cells.length; i < ien; i++) {
+		rowData = settings.aoData[cells[i].row];
+
+		if (
+			rowData && (
+				(selected === true &&
+					rowData._selected_cells &&
+					rowData._selected_cells[cells[i].column] === true) ||
+				(selected === false &&
+					(!rowData._selected_cells || !rowData._selected_cells[cells[i].column]))
+			)
+		) {
+			out.push(cells[i]);
+		}
+	}
+
+	return out;
+});
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables API
+ *
+ * For complete documentation, please refer to the docs/api directory or the
+ * DataTables site
+ */
+
+// Local variables to improve compression
+var apiRegister = DataTable.Api.register;
+var apiRegisterPlural = DataTable.Api.registerPlural;
+
+apiRegister('select()', function () {
+	return this.iterator('table', function (ctx) {
+		DataTable.select.init(new DataTable.Api(ctx));
+	});
+});
+
+apiRegister('select.blurable()', function (flag) {
+	if (flag === undefined) {
+		return this.context[0]._select.blurable;
+	}
+
+	return this.iterator('table', function (ctx) {
+		ctx._select.blurable = flag;
+	});
+});
+
+apiRegister('select.toggleable()', function (flag) {
+	if (flag === undefined) {
+		return this.context[0]._select.toggleable;
+	}
+
+	return this.iterator('table', function (ctx) {
+		ctx._select.toggleable = flag;
+	});
+});
+
+apiRegister('select.info()', function (flag) {
+	if (flag === undefined) {
+		return this.context[0]._select.info;
+	}
+
+	return this.iterator('table', function (ctx) {
+		ctx._select.info = flag;
+	});
+});
+
+apiRegister('select.items()', function (items) {
+	if (items === undefined) {
+		return this.context[0]._select.items;
+	}
+
+	return this.iterator('table', function (ctx) {
+		ctx._select.items = items;
+
+		eventTrigger(new DataTable.Api(ctx), 'selectItems', [items]);
+	});
+});
+
+apiRegister('select.keys()', function (flag, wrap) {
+	if (flag === undefined) {
+		return this.context[0]._select.keys;
+	}
+
+	return this.iterator('table', function (ctx) {
+		if (!ctx._select) {
+			DataTable.select.init(new DataTable.Api(ctx));
+		}
+
+		ctx._select.keys = flag;
+		ctx._select.keysWrap = wrap;
+
+		keysSet(new DataTable.Api(ctx));
+	});
+});
+
+// Takes effect from the _next_ selection. None disables future selection, but
+// does not clear the current selection. Use the `deselect` methods for that
+apiRegister('select.style()', function (style) {
+	if (style === undefined) {
+		return this.context[0]._select.style;
+	}
+
+	return this.iterator('table', function (ctx) {
+		if (!ctx._select) {
+			DataTable.select.init(new DataTable.Api(ctx));
+		}
+
+		if (!ctx._select_init) {
+			init(ctx);
+		}
+
+		ctx._select.style = style;
+
+		// Add / remove mouse event handlers. They aren't required when only
+		// API selection is available
+		var dt = new DataTable.Api(ctx);
+
+		if (style !== 'api') {
+			dt.ready(function () {
+				disableMouseSelection(dt);
+				enableMouseSelection(dt);
+			});
+		}
+		else {
+			disableMouseSelection(dt);
+		}
+
+		eventTrigger(new DataTable.Api(ctx), 'selectStyle', [style]);
+	});
+});
+
+apiRegister('select.selector()', function (selector) {
+	if (selector === undefined) {
+		return this.context[0]._select.selector;
+	}
+
+	return this.iterator('table', function (ctx) {
+		var dt = new DataTable.Api(ctx);
+		var style = ctx._select.style;
+
+		disableMouseSelection(dt);
+
+		ctx._select.selector = selector;
+
+		if (style && style !== 'api') {
+			dt.ready(function () {
+				disableMouseSelection(dt);
+				enableMouseSelection(dt);
+			});
+		}
+		else {
+			disableMouseSelection(dt);
+		}
+	});
+});
+
+apiRegister('select.selectable()', function (set) {
+	let ctx = this.context[0];
+
+	if (set) {
+		ctx._select.selectable = set;
+		return this;
+	}
+
+	return ctx._select.selectable;
+});
+
+apiRegister('select.last()', function (set) {
+	let ctx = this.context[0];
+
+	if (set) {
+		ctx._select_lastCell = set;
+		return this;
+	}
+
+	return ctx._select_lastCell;
+});
+
+apiRegister('select.cumulative()', function (mode) {
+	if (mode) {
+		return this.iterator('table', function (ctx) {
+			if (ctx._select_mode === mode) {
+				return;
+			}
+
+			var dt = new DataTable.Api(ctx);
+
+			// Convert from the current mode, to the new
+			if (mode === 'subtractive') {
+				// For subtractive mode we track the row ids which are not selected
+				var unselected = dt.rows({selected: false}).ids().toArray();
+
+				ctx._select_mode = mode;
+				ctx._select_set.length = 0;
+				ctx._select_set.push.apply(ctx._select_set, unselected);
+			}
+			else {
+				// Switching to additive, so selected rows are to be used
+				var selected = dt.rows({selected: true}).ids().toArray();
+
+				ctx._select_mode = mode;
+				ctx._select_set.length = 0;
+				ctx._select_set.push.apply(ctx._select_set, selected);
+			}
+		}).draw(false);
+	}
+
+	let ctx = this.context[0];
+
+	if (ctx && ctx._select_set) {
+		return {
+			mode: ctx._select_mode,
+			rows: ctx._select_set
+		};
+	}
+
+	return null;
+});
+
+apiRegisterPlural('rows().select()', 'row().select()', function (select) {
+	var api = this;
+	var selectedIndexes = [];
+
+	if (select === false) {
+		return this.deselect();
+	}
+
+	this.iterator('row', function (ctx, idx) {
+		clear(ctx);
+
+		// There is a good amount of knowledge of DataTables internals in
+		// this function. It _could_ be done without that, but it would hurt
+		// performance (or DT would need new APIs for this work)
+		var dtData = ctx.aoData[idx];
+		var dtColumns = ctx.aoColumns;
+
+		if (ctx._select.selectable) {
+			var result = ctx._select.selectable(dtData._aData, dtData.nTr, idx);
+
+			if (result === false) {
+				// Not selectable - do nothing
+				return;
+			}
+		}
+
+		$(dtData.nTr).addClass(ctx._select.className);
+		dtData._select_selected = true;
+
+		selectedIndexes.push(idx);
+
+		for (var i=0 ; i<dtColumns.length ; i++) {
+			var col = dtColumns[i];
+
+			// Regenerate the column type if not present
+			if (col.sType === null) {
+				api.columns().types()
+			}
+			
+			if (isCheckboxColumn(col)) {
+				var cells = dtData.anCells;
+
+				// Make sure the checkbox shows the right state
+				if (cells && cells[i]) {
+					$('input.' + checkboxClass(true), cells[i]).prop('checked', true);
+				}
+
+				// Invalidate the sort data for this column, if not already done
+				if (dtData._aSortData !== null) {
+					dtData._aSortData[i] = null;
+				}
+			}
+		}
+	});
+
+	this.iterator('table', function (ct) {
+		eventTrigger(api, 'select', ['row', selectedIndexes], true);
+	});
+
+	return this;
+});
+
+apiRegister('row().selected()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length && ctx.aoData[this[0]] && ctx.aoData[this[0]]._select_selected) {
+		return true;
+	}
+
+	return false;
+});
+
+apiRegister('row().focus()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length && ctx.aoData[this[0]] && ctx.aoData[this[0]].nTr) {
+		ctx.aoData[this[0]].nTr.focus();
+	}
+});
+
+apiRegister('row().blur()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length && ctx.aoData[this[0]] && ctx.aoData[this[0]].nTr) {
+		ctx.aoData[this[0]].nTr.blur();
+	}
+});
+
+apiRegisterPlural('columns().select()', 'column().select()', function (select) {
+	var api = this;
+
+	if (select === false) {
+		return this.deselect();
+	}
+
+	this.iterator('column', function (ctx, idx) {
+		clear(ctx);
+
+		ctx.aoColumns[idx]._select_selected = true;
+
+		var column = new DataTable.Api(ctx).column(idx);
+
+		$(column.header()).addClass(ctx._select.className);
+		$(column.footer()).addClass(ctx._select.className);
+
+		column.nodes().to$().addClass(ctx._select.className);
+	});
+
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['column', api[i]], true);
+	});
+
+	return this;
+});
+
+apiRegister('column().selected()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length && ctx.aoColumns[this[0]] && ctx.aoColumns[this[0]]._select_selected) {
+		return true;
+	}
+
+	return false;
+});
+
+apiRegisterPlural('cells().select()', 'cell().select()', function (select) {
+	var api = this;
+
+	if (select === false) {
+		return this.deselect();
+	}
+
+	this.iterator('cell', function (ctx, rowIdx, colIdx) {
+		clear(ctx);
+
+		var data = ctx.aoData[rowIdx];
+
+		if (data._selected_cells === undefined) {
+			data._selected_cells = [];
+		}
+
+		data._selected_cells[colIdx] = true;
+
+		if (data.anCells) {
+			$(data.anCells[colIdx]).addClass(ctx._select.className);
+		}
+	});
+
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['cell', api.cells(api[i]).indexes().toArray()], true);
+	});
+
+	return this;
+});
+
+apiRegister('cell().selected()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length) {
+		var row = ctx.aoData[this[0][0].row];
+
+		if (row && row._selected_cells && row._selected_cells[this[0][0].column]) {
+			return true;
+		}
+	}
+
+	return false;
+});
+
+apiRegisterPlural('rows().deselect()', 'row().deselect()', function () {
+	var api = this;
+
+	this.iterator('row', function (ctx, idx) {
+		// Like the select action, this has a lot of knowledge about DT internally
+		var dtData = ctx.aoData[idx];
+		var dtColumns = ctx.aoColumns;
+
+		$(dtData.nTr).removeClass(ctx._select.className);
+		dtData._select_selected = false;
+		ctx._select_lastCell = null;
+
+		for (var i=0 ; i<dtColumns.length ; i++) {
+			var col = dtColumns[i];
+
+			// Regenerate the column type if not present
+			if (col.sType === null) {
+				api.columns().types()
+			}
+			
+			if (isCheckboxColumn(col)) {
+				var cells = dtData.anCells;
+
+				// Make sure the checkbox shows the right state
+				if (cells && cells[i]) {
+					$('input.' + checkboxClass(true), dtData.anCells[i]).prop('checked', false);
+				}
+
+				// Invalidate the sort data for this column, if not already done
+				if (dtData._aSortData !== null) {
+					dtData._aSortData[i] = null;
+				}
+			}
+		}
+	});
+
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['row', api[i]], true);
+	});
+
+	return this;
+});
+
+apiRegisterPlural('columns().deselect()', 'column().deselect()', function () {
+	var api = this;
+
+	this.iterator('column', function (ctx, idx) {
+		ctx.aoColumns[idx]._select_selected = false;
+
+		var api = new DataTable.Api(ctx);
+		var column = api.column(idx);
+
+		$(column.header()).removeClass(ctx._select.className);
+		$(column.footer()).removeClass(ctx._select.className);
+
+		// Need to loop over each cell, rather than just using
+		// `column().nodes()` as cells which are individually selected should
+		// not have the `selected` class removed from them
+		api.cells(null, idx)
+			.indexes()
+			.each(function (cellIdx) {
+				var data = ctx.aoData[cellIdx.row];
+				var cellSelected = data._selected_cells;
+
+				if (data.anCells && (!cellSelected || !cellSelected[cellIdx.column])) {
+					$(data.anCells[cellIdx.column]).removeClass(ctx._select.className);
+				}
+			});
+	});
+
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['column', api[i]], true);
+	});
+
+	return this;
+});
+
+apiRegisterPlural('cells().deselect()', 'cell().deselect()', function () {
+	var api = this;
+
+	this.iterator('cell', function (ctx, rowIdx, colIdx) {
+		var data = ctx.aoData[rowIdx];
+
+		if (data._selected_cells !== undefined) {
+			data._selected_cells[colIdx] = false;
+		}
+
+		// Remove class only if the cells exist, and the cell is not column
+		// selected, in which case the class should remain (since it is selected
+		// in the column)
+		if (data.anCells && !ctx.aoColumns[colIdx]._select_selected) {
+			$(data.anCells[colIdx]).removeClass(ctx._select.className);
+		}
+	});
+
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['cell', api[i]], true);
+	});
+
+	return this;
+});
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Buttons
+ */
+function i18n(label, def) {
+	return function (dt) {
+		return dt.i18n('buttons.' + label, def);
+	};
+}
+
+// Common events with suitable namespaces
+function namespacedEvents(config) {
+	var unique = config._eventNamespace;
+
+	return 'draw.dt.DT' + unique + ' select.dt.DT' + unique + ' deselect.dt.DT' + unique;
+}
+
+function enabled(dt, config) {
+	if (config.limitTo.indexOf('rows') !== -1 && dt.rows({ selected: true }).any()) {
+		return true;
+	}
+
+	if (config.limitTo.indexOf('columns') !== -1 && dt.columns({ selected: true }).any()) {
+		return true;
+	}
+
+	if (config.limitTo.indexOf('cells') !== -1 && dt.cells({ selected: true }).any()) {
+		return true;
+	}
+
+	return false;
+}
+
+var _buttonNamespace = 0;
+
+$.extend(DataTable.ext.buttons, {
+	selected: {
+		text: i18n('selected', 'Selected'),
+		className: 'buttons-selected',
+		limitTo: ['rows', 'columns', 'cells'],
+		init: function (dt, node, config) {
+			var that = this;
+			config._eventNamespace = '.select' + _buttonNamespace++;
+
+			// .DT namespace listeners are removed by DataTables automatically
+			// on table destroy
+			dt.on(namespacedEvents(config), function () {
+				that.enable(enabled(dt, config));
+			});
+
+			this.disable();
+		},
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
+		}
+	},
+	selectedSingle: {
+		text: i18n('selectedSingle', 'Selected single'),
+		className: 'buttons-selected-single',
+		init: function (dt, node, config) {
+			var that = this;
+			config._eventNamespace = '.select' + _buttonNamespace++;
+
+			dt.on(namespacedEvents(config), function () {
+				var count =
+					dt.rows({ selected: true }).flatten().length +
+					dt.columns({ selected: true }).flatten().length +
+					dt.cells({ selected: true }).flatten().length;
+
+				that.enable(count === 1);
+			});
+
+			this.disable();
+		},
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
+		}
+	},
+	selectAll: {
+		text: i18n('selectAll', 'Select all'),
+		className: 'buttons-select-all',
+		action: function (e, dt, node, config) {
+			var items = this.select.items();
+			var mod = config.selectorModifier;
+			
+			if (mod) {
+				if (typeof mod === 'function') {
+					mod = mod.call(dt, e, dt, node, config);
+				}
+
+				this[items + 's'](mod).select();
+			}
+			else {
+				this[items + 's']().select();
+			}
+		}
+		// selectorModifier can be specified
+	},
+	selectNone: {
+		text: i18n('selectNone', 'Deselect all'),
+		className: 'buttons-select-none',
+		action: function () {
+			clear(this.settings()[0], true);
+		},
+		init: function (dt, node, config) {
+			var that = this;
+			config._eventNamespace = '.select' + _buttonNamespace++;
+
+			dt.on(namespacedEvents(config), function () {
+				var count =
+					dt.rows({ selected: true }).flatten().length +
+					dt.columns({ selected: true }).flatten().length +
+					dt.cells({ selected: true }).flatten().length;
+
+				that.enable(count > 0);
+			});
+
+			this.disable();
+		},
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
+		}
+	},
+	showSelected: {
+		text: i18n('showSelected', 'Show only selected'),
+		className: 'buttons-show-selected',
+		action: function (e, dt) {
+			if (dt.search.fixed('dt-select')) {
+				// Remove existing function
+				dt.search.fixed('dt-select', null);
+
+				this.active(false);
+			}
+			else {
+				// Use a fixed filtering function to match on selected rows
+				// This needs to reference the internal aoData since that is
+				// where Select stores its reference for the selected state
+				var dataSrc = dt.settings()[0].aoData;
+
+				dt.search.fixed('dt-select', function (text, data, idx) {
+					// _select_selected is set by Select on the data object for the row
+					return dataSrc[idx]._select_selected;
+				});
+
+				this.active(true);
+			}
+
+			dt.draw();
+		}
+	}
+});
+
+$.each(['Row', 'Column', 'Cell'], function (i, item) {
+	var lc = item.toLowerCase();
+
+	DataTable.ext.buttons['select' + item + 's'] = {
+		text: i18n('select' + item + 's', 'Select ' + lc + 's'),
+		className: 'buttons-select-' + lc + 's',
+		action: function () {
+			this.select.items(lc);
+		},
+		init: function (dt) {
+			var that = this;
+
+			this.active(dt.select.items() === lc);
+
+			dt.on('selectItems.dt.DT', function (e, ctx, items) {
+				that.active(items === lc);
+			});
+		}
+	};
+});
+
+// Note that DataTables 2.1 has more robust type detection, but we retain
+// backwards compatibility with 2.0 for the moment.
+DataTable.type('select-checkbox', {
+	className: 'dt-select',
+	detect: DataTable.versionCheck('2.1')
+		? {
+			oneOf: function () {
+				return false; // no op
+			},
+			allOf: function () {
+				return false; // no op
+			},
+			init: function (settings, col, idx) {
+				return isCheckboxColumn(col);
+			}
+		}
+		: function (data) {
+			// Rendering function will tell us if it is a checkbox type
+			return data === 'select-checkbox' ? data : false;
+		},
+	order: {
+		pre: function (d) {
+			return d === 'X' ? -1 : 0;
+		}
+	}
+});
+
+$.extend(true, DataTable.defaults.oLanguage, {
+	select: {
+		aria: {
+			rowCheckbox: 'Select row'
+		}
+	}
+});
+
+DataTable.render.select = function (valueProp, nameProp) {
+	var valueFn = valueProp ? DataTable.util.get(valueProp) : null;
+	var nameFn = nameProp ? DataTable.util.get(nameProp) : null;
+
+	var fn = function (data, type, row, meta) {
+		var dtRow = meta.settings.aoData[meta.row];
+		var selected = dtRow._select_selected;
+		var ariaLabel = meta.settings.oLanguage.select.aria.rowCheckbox;
+		var selectable = meta.settings._select.selectable;
+
+		if (type === 'display') {
+			// Check if the row is selectable before showing the checkbox
+			if (selectable) {
+				var result = selectable(row, dtRow.nTr, meta.row);
+	
+				if (result === false) {
+					return '';
+				}
+			}
+
+			return $('<input>')
+				.attr({
+					'aria-label': ariaLabel,
+					class: checkboxClass(),
+					name: nameFn ? nameFn(row) : null,
+					type: 'checkbox',
+					value: valueFn ? valueFn(row) : null,
+					checked: selected
+				})
+				.on('input', function (e) {
+					// Let Select 100% control the state of the checkbox
+					e.preventDefault();
+
+					// And make sure this checkbox matches it's row as it is possible
+					// to check out of sync if this was clicked on to deselect a range
+					// but remains selected itself
+					this.checked = $(this).closest('tr').hasClass('selected');
+				})[0];
+		}
+		else if (type === 'type') {
+			return 'select-checkbox';
+		}
+		else if (type === 'filter') {
+			return '';
+		}
+
+		return selected ? 'X' : '';
+	}
+
+	// Workaround so uglify doesn't strip the function name. It is used
+	// for the column type detection.
+	fn._name = 'selectCheckbox';
+
+	return fn;
+}
+
+// Legacy checkbox ordering
+DataTable.ext.order['select-checkbox'] = function (settings, col) {
+	return this.api()
+		.column(col, { order: 'index' })
+		.nodes()
+		.map(function (td) {
+			if (settings._select.items === 'row') {
+				return $(td).parent().hasClass(settings._select.className).toString();
+			}
+			else if (settings._select.items === 'cell') {
+				return $(td).hasClass(settings._select.className).toString();
+			}
+			return false;
+		});
+};
+
+$.fn.DataTable.select = DataTable.select;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Initialisation
+ */
+
+// DataTables creation - we need this to run _before_ data is read in, but
+// for backwards compat. we also run again on preInit. If it happens twice
+// it will simply do nothing the second time around.
+$(document).on('i18n.dt.dtSelect preInit.dt.dtSelect', function (e, ctx) {
+	if (e.namespace !== 'dt') {
+		return;
+	}
+
+	DataTable.select.init(new DataTable.Api(ctx));
+});
+
+
+return DataTable;
+}));
+
+
+/*! StateRestore 1.4.3
+ * © SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+(function () {
+    'use strict';
+
+    var $$2;
+    var dataTable$1;
+    function setJQuery$1(jq) {
+        $$2 = jq;
+        dataTable$1 = jq.fn.dataTable;
+    }
+    var StateRestore = /** @class */ (function () {
+        function StateRestore(settings, opts, identifier, state, isPreDefined, successCallback) {
+            if (state === void 0) { state = undefined; }
+            if (isPreDefined === void 0) { isPreDefined = false; }
+            if (successCallback === void 0) { successCallback = function () { return null; }; }
+            // Check that the required version of DataTables is included
+            if (!dataTable$1 || !dataTable$1.versionCheck || !dataTable$1.versionCheck('1.10.0')) {
+                throw new Error('StateRestore requires DataTables 1.10 or newer');
+            }
+            // Check that Select is included
+            // eslint-disable-next-line no-extra-parens
+            if (!dataTable$1.Buttons) {
+                throw new Error('StateRestore requires Buttons');
+            }
+            var table = new dataTable$1.Api(settings);
+            this.classes = $$2.extend(true, {}, StateRestore.classes);
+            // Get options from user
+            this.c = $$2.extend(true, {}, StateRestore.defaults, opts);
+            this.s = {
+                dt: table,
+                identifier: identifier,
+                isPreDefined: isPreDefined,
+                savedState: state,
+                tableId: state && state.stateRestore ? state.stateRestore.tableId : undefined
+            };
+            this.dom = {
+                background: $$2('<div class="' + this.classes.background + '"/>'),
+                closeButton: $$2('<div class="' + this.classes.closeButton + '">&times;</div>'),
+                confirmation: $$2('<div class="' + this.classes.confirmation + '"/>'),
+                confirmationButton: $$2('<button class="' + this.classes.confirmationButton + ' ' + this.classes.dtButton + '">'),
+                confirmationTitleRow: $$2('<div class="' + this.classes.confirmationTitleRow + '"></div>'),
+                dtContainer: $$2(this.s.dt.table().container()),
+                duplicateError: $$2('<span class="' + this.classes.modalError + '">' +
+                    this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError) +
+                    '</span>'),
+                emptyError: $$2('<span class="' + this.classes.modalError + '">' +
+                    this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError) +
+                    '</span>'),
+                removeContents: $$2('<div class="' + this.classes.confirmationText + '"><span>' +
+                    this.s.dt
+                        .i18n('stateRestore.removeConfirm', this.c.i18n.removeConfirm)
+                        .replace(/%s/g, StateRestore.entityEncode(this.s.identifier)) +
+                    '</span></div>'),
+                removeError: $$2('<span class="' + this.classes.modalError + '">' +
+                    this.s.dt.i18n('stateRestore.removeError', this.c.i18n.removeError) +
+                    '</span>'),
+                removeTitle: $$2('<h2 class="' + this.classes.confirmationTitle + '">' +
+                    this.s.dt.i18n('stateRestore.removeTitle', this.c.i18n.removeTitle) +
+                    '</h2>'),
+                renameContents: $$2('<div class="' + this.classes.confirmationText + ' ' + this.classes.renameModal + '">' +
+                    '<label class="' + this.classes.confirmationMessage + '">' +
+                    this.s.dt
+                        .i18n('stateRestore.renameLabel', this.c.i18n.renameLabel)
+                        .replace(/%s/g, StateRestore.entityEncode(this.s.identifier)) +
+                    '</label>' +
+                    '</div>'),
+                renameInput: $$2('<input class="' + this.classes.input + '" type="text"></input>'),
+                renameTitle: $$2('<h2 class="' + this.classes.confirmationTitle + '">' +
+                    this.s.dt.i18n('stateRestore.renameTitle', this.c.i18n.renameTitle) +
+                    '</h2>')
+            };
+            // When a StateRestore instance is created the current state of the
+            // table should also be saved.
+            this.save(state, successCallback, !isPreDefined);
+        }
+        /**
+         * Removes a state from storage and then triggers the dtsr-remove event
+         * so that the StateRestoreCollection class can remove it's references as well.
+         *
+         * @param skipModal Flag to indicate if the modal should be skipped or not
+         */
+        StateRestore.prototype.remove = function (skipModal) {
+            var _a;
+            var _this = this;
+            if (skipModal === void 0) { skipModal = false; }
+            // Check if removal of states is allowed
+            if (!this.c.remove) {
+                return false;
+            }
+            var removeFunction;
+            var ajaxData = {
+                action: 'remove',
+                stateRestore: (_a = {},
+                    _a[this.s.identifier] = this.s.savedState,
+                    _a)
+            };
+            var successCallback = function () {
+                _this.dom.confirmation.trigger('dtsr-remove');
+                $$2(_this.s.dt.table().node()).trigger('stateRestore-change');
+                _this.dom.background.click();
+                _this.dom.confirmation.remove();
+                $$2(document).unbind('keyup', function (e) { return _this._keyupFunction(e); });
+                _this.dom.confirmationButton.off('click');
+            };
+            // If the remove is not happening over ajax remove it from local storage and then trigger the event
+            if (!this.c.ajax) {
+                removeFunction = function () {
+                    try {
+                        localStorage.removeItem('DataTables_stateRestore_' + _this.s.identifier + '_' + location.pathname +
+                            (_this.s.tableId ? '_' + _this.s.tableId : ''));
+                        successCallback();
+                    }
+                    catch (e) {
+                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
+                        _this.dom.confirmation.append(_this.dom.removeError);
+                        return 'remove';
+                    }
+                    return true;
+                };
+            }
+            // Ajax property has to be a string, not just true
+            // Also only want to save if the table has been initialised and the states have been loaded in
+            else if (typeof this.c.ajax === 'string' && this.s.dt.settings()[0]._bInitComplete) {
+                removeFunction = function () {
+                    $$2.ajax({
+                        data: ajaxData,
+                        success: successCallback,
+                        type: 'POST',
+                        url: _this.c.ajax
+                    });
+                    return true;
+                };
+            }
+            else if (typeof this.c.ajax === 'function') {
+                removeFunction = function () {
+                    if (typeof _this.c.ajax === 'function') {
+                        _this.c.ajax.call(_this.s.dt, ajaxData, successCallback);
+                    }
+                    return true;
+                };
+            }
+            // If the modal is to be skipped then remove straight away
+            if (skipModal) {
+                this.dom.confirmation.appendTo(this.dom.dtContainer);
+                $$2(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
+                removeFunction();
+                this.dom.confirmation.remove();
+            }
+            // Otherwise display the modal
+            else {
+                this._newModal(this.dom.removeTitle, this.s.dt.i18n('stateRestore.removeSubmit', this.c.i18n.removeSubmit), removeFunction, this.dom.removeContents);
+            }
+            return true;
+        };
+        /**
+         * Compares the state held within this instance with a state that is passed in
+         *
+         * @param state The state that is to be compared against
+         * @returns boolean indicating if the states match
+         */
+        StateRestore.prototype.compare = function (state) {
+            // Order
+            if (!this.c.saveState.order) {
+                state.order = undefined;
+            }
+            // Search
+            if (!this.c.saveState.search) {
+                state.search = undefined;
+            }
+            // Columns
+            if (this.c.saveState.columns && state.columns) {
+                for (var i = 0, ien = state.columns.length; i < ien; i++) {
+                    // Visibility
+                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.visible) {
+                        state.columns[i].visible = undefined;
+                    }
+                    // Search
+                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.search) {
+                        state.columns[i].search = undefined;
+                    }
+                }
+            }
+            else if (!this.c.saveState.columns) {
+                state.columns = undefined;
+            }
+            // Paging
+            if (!this.c.saveState.paging) {
+                state.page = undefined;
+            }
+            // SearchBuilder
+            if (!this.c.saveState.searchBuilder) {
+                state.searchBuilder = undefined;
+            }
+            // SearchPanes
+            if (!this.c.saveState.searchPanes) {
+                state.searchPanes = undefined;
+            }
+            // Select
+            if (!this.c.saveState.select) {
+                state.select = undefined;
+            }
+            // ColReorder
+            if (!this.c.saveState.colReorder) {
+                state.ColReorder = undefined;
+            }
+            // Scroller
+            if (!this.c.saveState.scroller) {
+                state.scroller = undefined;
+                if (dataTable$1.Scroller !== undefined) {
+                    state.start = 0;
+                }
+            }
+            // Paging
+            if (!this.c.saveState.paging) {
+                state.start = 0;
+            }
+            // Page Length
+            if (!this.c.saveState.length) {
+                state.length = undefined;
+            }
+            // Need to delete properties that we do not want to compare
+            delete state.time;
+            var copyState = this.s.savedState;
+            delete copyState.time;
+            delete copyState.c;
+            delete copyState.stateRestore;
+            // Perform a deep compare of the two state objects
+            return this._deepCompare(state, copyState);
+        };
+        /**
+         * Removes all of the dom elements from the document
+         */
+        StateRestore.prototype.destroy = function () {
+            $$2.each(this.dom, function (name, el) {
+                el.off().remove();
+            });
+        };
+        /**
+         * Loads the state referenced by the identifier from storage
+         *
+         * @param state The identifier of the state that should be loaded
+         * @returns the state that has been loaded
+         */
+        StateRestore.prototype.load = function () {
+            var _this = this;
+            var loadedState = this.s.savedState;
+            var settings = this.s.dt.settings()[0];
+            // Always want the states stored here to be loaded in - regardless of when they were created
+            loadedState.time = +new Date();
+            settings.oLoadedState = $$2.extend(true, {}, loadedState);
+            // Click on a background if there is one to shut the collection
+            $$2('div.dt-button-background').click();
+            var loaded = function () {
+                var correctPaging = function (e, preSettings) {
+                    setTimeout(function () {
+                        var currpage = preSettings._iDisplayStart / preSettings._iDisplayLength;
+                        var intendedPage = loadedState.start / loadedState.length;
+                        // If the paging is incorrect then we have to set it again so that it is correct
+                        // This happens when a searchpanes filter is removed
+                        // This has to happen in a timeout because searchpanes only deselects after a timeout
+                        if (currpage >= 0 && intendedPage >= 0 && currpage !== intendedPage) {
+                            _this.s.dt.page(intendedPage).draw(false);
+                        }
+                    }, 50);
+                };
+                _this.s.dt.one('preDraw', correctPaging);
+                _this.s.dt.draw(false);
+            };
+            // Call the internal datatables function to implement the state on the table
+            if (DataTable.versionCheck('2')) {
+                this.s.dt.state(loadedState);
+                loaded();
+            }
+            else {
+                // Legacy
+                DataTable.ext.oApi._fnImplementState(settings, loadedState, loaded);
+            }
+            return loadedState;
+        };
+        /**
+         * Shows a modal that allows a state to be renamed
+         *
+         * @param newIdentifier Optional. The new identifier for this state
+         */
+        StateRestore.prototype.rename = function (newIdentifier, currentIdentifiers) {
+            var _this = this;
+            if (newIdentifier === void 0) { newIdentifier = null; }
+            // Check if renaming of states is allowed
+            if (!this.c.rename) {
+                return;
+            }
+            var renameFunction = function () {
+                var _a;
+                if (newIdentifier === null) {
+                    var tempIdentifier = $$2('input.' + _this.classes.input.replace(/ /g, '.')).val();
+                    if (tempIdentifier.length === 0) {
+                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
+                        _this.dom.confirmation.append(_this.dom.emptyError);
+                        return 'empty';
+                    }
+                    else if (currentIdentifiers.includes(tempIdentifier)) {
+                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
+                        _this.dom.confirmation.append(_this.dom.duplicateError);
+                        return 'duplicate';
+                    }
+                    else {
+                        newIdentifier = tempIdentifier;
+                    }
+                }
+                var ajaxData = {
+                    action: 'rename',
+                    stateRestore: (_a = {},
+                        _a[_this.s.identifier] = newIdentifier,
+                        _a)
+                };
+                var successCallback = function () {
+                    _this.s.identifier = newIdentifier;
+                    _this.save(_this.s.savedState, function () { return null; }, false);
+                    _this.dom.removeContents = $$2('<div class="' + _this.classes.confirmationText + '"><span>' +
+                        _this.s.dt
+                            .i18n('stateRestore.removeConfirm', _this.c.i18n.removeConfirm)
+                            .replace(/%s/g, _this.s.identifier) +
+                        '</span></div>');
+                    _this.dom.confirmation.trigger('dtsr-rename');
+                    _this.dom.background.click();
+                    _this.dom.confirmation.remove();
+                    $$2(document).unbind('keyup', function (e) { return _this._keyupFunction(e); });
+                    _this.dom.confirmationButton.off('click');
+                };
+                if (!_this.c.ajax) {
+                    try {
+                        localStorage.removeItem('DataTables_stateRestore_' + _this.s.identifier + '_' + location.pathname +
+                            (_this.s.tableId ? '_' + _this.s.tableId : ''));
+                        successCallback();
+                    }
+                    catch (e) {
+                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
+                        _this.dom.confirmation.append(_this.dom.removeError);
+                        return false;
+                    }
+                }
+                else if (typeof _this.c.ajax === 'string' && _this.s.dt.settings()[0]._bInitComplete) {
+                    $$2.ajax({
+                        data: ajaxData,
+                        success: successCallback,
+                        type: 'POST',
+                        url: _this.c.ajax
+                    });
+                }
+                else if (typeof _this.c.ajax === 'function') {
+                    _this.c.ajax.call(_this.s.dt, ajaxData, successCallback);
+                }
+                return true;
+            };
+            // Check if a new identifier has been provided, if so no need for a modal
+            if (newIdentifier !== null) {
+                if (currentIdentifiers.includes(newIdentifier)) {
+                    throw new Error(this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError));
+                }
+                else if (newIdentifier.length === 0) {
+                    throw new Error(this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError));
+                }
+                else {
+                    this.dom.confirmation.appendTo(this.dom.dtContainer);
+                    $$2(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
+                    renameFunction();
+                    this.dom.confirmation.remove();
+                }
+            }
+            else {
+                this.dom.renameInput.val(this.s.identifier);
+                this.dom.renameContents.append(this.dom.renameInput);
+                this._newModal(this.dom.renameTitle, this.s.dt.i18n('stateRestore.renameButton', this.c.i18n.renameButton), renameFunction, this.dom.renameContents);
+            }
+        };
+        /**
+         * Saves the tables current state using the identifier that is passed in.
+         *
+         * @param state Optional. If provided this is the state that will be saved rather than using the current state
+         */
+        StateRestore.prototype.save = function (state, passedSuccessCallback, callAjax) {
+            var _a;
+            var _this = this;
+            if (callAjax === void 0) { callAjax = true; }
+            // Check if saving states is allowed
+            if (!this.c.save) {
+                if (passedSuccessCallback) {
+                    passedSuccessCallback.call(this);
+                }
+                return;
+            }
+            // this.s.dt.state.save();
+            var savedState;
+            // If no state has been provided then create a new one from the current state
+            this.s.dt.state.save();
+            if (state === undefined) {
+                savedState = this.s.dt.state();
+            }
+            else if (typeof state !== 'object') {
+                return;
+            }
+            else {
+                savedState = state;
+            }
+            if (savedState.stateRestore) {
+                savedState.stateRestore.isPreDefined = this.s.isPreDefined;
+                savedState.stateRestore.state = this.s.identifier;
+                savedState.stateRestore.tableId = this.s.tableId;
+            }
+            else {
+                savedState.stateRestore = {
+                    isPreDefined: this.s.isPreDefined,
+                    state: this.s.identifier,
+                    tableId: this.s.tableId
+                };
+            }
+            this.s.savedState = savedState;
+            // Order
+            if (!this.c.saveState.order) {
+                this.s.savedState.order = undefined;
+            }
+            // Search
+            if (!this.c.saveState.search) {
+                this.s.savedState.search = undefined;
+            }
+            // Columns
+            if (this.c.saveState.columns && this.s.savedState.columns) {
+                for (var i = 0, ien = this.s.savedState.columns.length; i < ien; i++) {
+                    // Visibility
+                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.visible) {
+                        this.s.savedState.columns[i].visible = undefined;
+                    }
+                    // Search
+                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.search) {
+                        this.s.savedState.columns[i].search = undefined;
+                    }
+                }
+            }
+            else if (!this.c.saveState.columns) {
+                this.s.savedState.columns = undefined;
+            }
+            // SearchBuilder
+            if (!this.c.saveState.searchBuilder) {
+                this.s.savedState.searchBuilder = undefined;
+            }
+            // SearchPanes
+            if (!this.c.saveState.searchPanes) {
+                this.s.savedState.searchPanes = undefined;
+            }
+            // Select
+            if (!this.c.saveState.select) {
+                this.s.savedState.select = undefined;
+            }
+            // ColReorder
+            if (!this.c.saveState.colReorder) {
+                this.s.savedState.ColReorder = undefined;
+            }
+            // Scroller
+            if (!this.c.saveState.scroller) {
+                this.s.savedState.scroller = undefined;
+                if (dataTable$1.Scroller !== undefined) {
+                    this.s.savedState.start = 0;
+                }
+            }
+            // Paging
+            if (!this.c.saveState.paging) {
+                this.s.savedState.start = 0;
+            }
+            // Page Length
+            if (!this.c.saveState.length) {
+                this.s.savedState.length = undefined;
+            }
+            this.s.savedState.c = this.c;
+            // Need to remove the parent reference before we save the state
+            // Its not needed to rebuild, but it does cause a circular reference when converting to JSON
+            if (this.s.savedState.c.splitSecondaries.length) {
+                for (var _i = 0, _b = this.s.savedState.c.splitSecondaries; _i < _b.length; _i++) {
+                    var secondary = _b[_i];
+                    if (secondary.parent) {
+                        secondary.parent = undefined;
+                    }
+                }
+            }
+            var ajaxData = {
+                action: 'save',
+                stateRestore: (_a = {},
+                    _a[this.s.identifier] = this.s.savedState,
+                    _a)
+            };
+            var successCallback = function () {
+                if (passedSuccessCallback) {
+                    passedSuccessCallback.call(_this);
+                }
+                _this.dom.confirmation.trigger('dtsr-save');
+                $$2(_this.s.dt.table().node()).trigger('stateRestore-change');
+            };
+            if (!this.c.ajax) {
+                localStorage.setItem('DataTables_stateRestore_' + this.s.identifier + '_' + location.pathname +
+                    (this.s.tableId ? '_' + this.s.tableId : ''), JSON.stringify(this.s.savedState));
+                successCallback();
+            }
+            else if (typeof this.c.ajax === 'string' && callAjax) {
+                if (this.s.dt.settings()[0]._bInitComplete) {
+                    $$2.ajax({
+                        data: ajaxData,
+                        success: successCallback,
+                        type: 'POST',
+                        url: this.c.ajax
+                    });
+                }
+                else {
+                    this.s.dt.one('init', function () {
+                        $$2.ajax({
+                            data: ajaxData,
+                            success: successCallback,
+                            type: 'POST',
+                            url: _this.c.ajax
+                        });
+                    });
+                }
+            }
+            else if (typeof this.c.ajax === 'function' && callAjax) {
+                this.c.ajax.call(this.s.dt, ajaxData, successCallback);
+            }
+            else if (!callAjax) {
+                successCallback();
+            }
+        };
+        /**
+         * Encode HTML entities
+         *
+         * @param d String to encode
+         * @returns Encoded string
+         * @todo When DT1 support is dropped, switch to using `DataTable.util.escapeHtml`
+         */
+        StateRestore.entityEncode = function (d) {
+            return typeof d === 'string' ?
+                d
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;') :
+                d;
+        };
+        /**
+         * Performs a deep compare of two state objects, returning true if they match
+         *
+         * @param state1 The first object to compare
+         * @param state2 The second object to compare
+         * @returns boolean indicating if the objects match
+         */
+        StateRestore.prototype._deepCompare = function (state1, state2) {
+            if (state1 === null && state2 === null) {
+                return true;
+            }
+            else if (state1 === null || state2 === null) {
+                return false;
+            }
+            // Put keys and states into arrays as this makes the later code easier to work
+            var states = [state1, state2];
+            var keys = [Object.keys(state1).sort(), Object.keys(state2).sort()];
+            var startIdx, i;
+            // If scroller is included then we need to remove the start value
+            //  as it can be different but yield the same results
+            if (keys[0].includes('scroller')) {
+                startIdx = keys[0].indexOf('start');
+                if (startIdx) {
+                    keys[0].splice(startIdx, 1);
+                }
+            }
+            if (keys[1].includes('scroller')) {
+                startIdx = keys[1].indexOf('start');
+                if (startIdx) {
+                    keys[1].splice(startIdx, 1);
+                }
+            }
+            // We want to remove any private properties within the states
+            for (i = 0; i < keys[0].length; i++) {
+                if (keys[0][i].indexOf('_') === 0) {
+                    keys[0].splice(i, 1);
+                    i--;
+                    continue;
+                }
+                // If scroller is included then we need to remove the following values
+                //  as they can be different but yield the same results
+                if (keys[0][i] === 'baseRowTop' ||
+                    keys[0][i] === 'baseScrollTop' ||
+                    keys[0][i] === 'scrollTop' ||
+                    (!this.c.saveState.paging && keys[0][i] === 'page')) {
+                    keys[0].splice(i, 1);
+                    i--;
+                    continue;
+                }
+            }
+            for (i = 0; i < keys[1].length; i++) {
+                if (keys[1][i].indexOf('_') === 0) {
+                    keys[1].splice(i, 1);
+                    i--;
+                    continue;
+                }
+                if (keys[1][i] === 'baseRowTop' ||
+                    keys[1][i] === 'baseScrollTop' ||
+                    keys[1][i] === 'scrollTop' ||
+                    (!this.c.saveState.paging && keys[0][i] === 'page')) {
+                    keys[1].splice(i, 1);
+                    i--;
+                    continue;
+                }
+            }
+            if (keys[0].length === 0 && keys[1].length > 0 ||
+                keys[1].length === 0 && keys[0].length > 0) {
+                return false;
+            }
+            // We are only going to compare the keys that are common between both states
+            for (i = 0; i < keys[0].length; i++) {
+                if (!keys[1].includes(keys[0][i])) {
+                    keys[0].splice(i, 1);
+                    i--;
+                }
+            }
+            for (i = 0; i < keys[1].length; i++) {
+                if (!keys[0].includes(keys[1][i])) {
+                    keys[1].splice(i, 1);
+                    i--;
+                }
+            }
+            // Then each key and value has to be checked against each other
+            for (i = 0; i < keys[0].length; i++) {
+                // If the keys dont equal, or their corresponding types are different we can return false
+                if (keys[0][i] !== keys[1][i] || typeof states[0][keys[0][i]] !== typeof states[1][keys[1][i]]) {
+                    return false;
+                }
+                // If the type is an object then further deep comparisons are required
+                if (typeof states[0][keys[0][i]] === 'object') {
+                    // Arrays must be the same length to be matched
+                    if (Array.isArray(states[0][keys[0][i]]) && Array.isArray(states[1][keys[1][i]])) {
+                        if (states[0][keys[0][i]].length !== states[1][keys[0][i]].length) {
+                            return false;
+                        }
+                    }
+                    if (!this._deepCompare(states[0][keys[0][i]], states[1][keys[1][i]])) {
+                        return false;
+                    }
+                }
+                else if (typeof states[0][keys[0][i]] === 'number' && typeof states[1][keys[1][i]] === 'number') {
+                    if (Math.round(states[0][keys[0][i]]) !== Math.round(states[1][keys[1][i]])) {
+                        return false;
+                    }
+                }
+                // Otherwise we can just check the value
+                else if (states[0][keys[0][i]] !== states[1][keys[1][i]]) {
+                    return false;
+                }
+            }
+            // If we get all the way to here there are no differences so return true for this object
+            return true;
+        };
+        StateRestore.prototype._keyupFunction = function (e) {
+            // If enter same action as pressing the button
+            if (e.key === 'Enter') {
+                this.dom.confirmationButton.click();
+            }
+            // If escape close modal
+            else if (e.key === 'Escape') {
+                $$2('div.' + this.classes.background.replace(/ /g, '.')).click();
+            }
+        };
+        /**
+         * Creates a new confirmation modal for the user to approve an action
+         *
+         * @param title The title that is to be displayed at the top of the modal
+         * @param buttonText The text that is to be displayed in the confirmation button of the modal
+         * @param buttonAction The action that should be taken when the confirmation button is pressed
+         * @param modalContents The contents for the main body of the modal
+         */
+        StateRestore.prototype._newModal = function (title, buttonText, buttonAction, modalContents) {
+            var _this = this;
+            this.dom.background.appendTo(this.dom.dtContainer);
+            this.dom.confirmationTitleRow.empty().append(title);
+            this.dom.confirmationButton.html(buttonText);
+            this.dom.confirmation
+                .empty()
+                .append(this.dom.confirmationTitleRow)
+                .append(modalContents)
+                .append($$2('<div class="' + this.classes.confirmationButtons + '"></div>')
+                .append(this.dom.confirmationButton))
+                .appendTo(this.dom.dtContainer);
+            $$2(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
+            var inputs = modalContents.children('input');
+            // If there is an input focus on that
+            if (inputs.length > 0) {
+                $$2(inputs[0]).focus();
+            }
+            // Otherwise focus on the confirmation button
+            else {
+                this.dom.confirmationButton.focus();
+            }
+            var background = $$2('div.' + this.classes.background.replace(/ /g, '.'));
+            if (this.c.modalCloseButton) {
+                this.dom.confirmation.append(this.dom.closeButton);
+                this.dom.closeButton.on('click', function () { return background.click(); });
+            }
+            // When the button is clicked, call the appropriate action,
+            // remove the background and modal from the screen and unbind the keyup event.
+            this.dom.confirmationButton.on('click', function () { return buttonAction(); });
+            this.dom.confirmation.on('click', function (e) {
+                e.stopPropagation();
+            });
+            // When the button is clicked, remove the background and modal from the screen and unbind the keyup event.
+            background.one('click', function () {
+                _this.dom.background.remove();
+                _this.dom.confirmation.remove();
+                $$2(document).unbind('keyup', function (e) { return _this._keyupFunction(e); });
+            });
+            $$2(document).on('keyup', function (e) { return _this._keyupFunction(e); });
+        };
+        StateRestore.version = '1.4.3';
+        StateRestore.classes = {
+            background: 'dtsr-background',
+            closeButton: 'dtsr-popover-close',
+            confirmation: 'dtsr-confirmation',
+            confirmationButton: 'dtsr-confirmation-button',
+            confirmationButtons: 'dtsr-confirmation-buttons',
+            confirmationMessage: 'dtsr-confirmation-message dtsr-name-label',
+            confirmationText: 'dtsr-confirmation-text',
+            confirmationTitle: 'dtsr-confirmation-title',
+            confirmationTitleRow: 'dtsr-confirmation-title-row',
+            dtButton: 'dt-button',
+            input: 'dtsr-input',
+            modalError: 'dtsr-modal-error',
+            renameModal: 'dtsr-rename-modal'
+        };
+        StateRestore.defaults = {
+            _createInSaved: false,
+            ajax: false,
+            create: true,
+            creationModal: false,
+            i18n: {
+                creationModal: {
+                    button: 'Create',
+                    colReorder: 'Column Order:',
+                    columns: {
+                        search: 'Column Search:',
+                        visible: 'Column Visibility:'
+                    },
+                    length: 'Page Length:',
+                    name: 'Name:',
+                    order: 'Sorting:',
+                    paging: 'Paging:',
+                    scroller: 'Scroll Position:',
+                    search: 'Search:',
+                    searchBuilder: 'SearchBuilder:',
+                    searchPanes: 'SearchPanes:',
+                    select: 'Select:',
+                    title: 'Create New State',
+                    toggleLabel: 'Includes:'
+                },
+                duplicateError: 'A state with this name already exists.',
+                emptyError: 'Name cannot be empty.',
+                emptyStates: 'No saved states',
+                removeConfirm: 'Are you sure you want to remove "%s"?',
+                removeError: 'Failed to remove state.',
+                removeJoiner: ' and ',
+                removeSubmit: 'Remove',
+                removeTitle: 'Remove State',
+                renameButton: 'Rename',
+                renameLabel: 'New Name for "%s":',
+                renameTitle: 'Rename State'
+            },
+            modalCloseButton: true,
+            remove: true,
+            rename: true,
+            save: true,
+            saveState: {
+                colReorder: true,
+                columns: {
+                    search: true,
+                    visible: true
+                },
+                length: true,
+                order: true,
+                paging: true,
+                scroller: true,
+                search: true,
+                searchBuilder: true,
+                searchPanes: true,
+                select: true
+            },
+            splitSecondaries: [
+                'updateState',
+                'renameState',
+                'removeState'
+            ],
+            toggle: {
+                colReorder: false,
+                columns: {
+                    search: false,
+                    visible: false
+                },
+                length: false,
+                order: false,
+                paging: false,
+                scroller: false,
+                search: false,
+                searchBuilder: false,
+                searchPanes: false,
+                select: false
+            },
+            createButton: null,
+            createState: null
+        };
+        return StateRestore;
+    }());
+
+    var $$1;
+    var dataTable;
+    function setJQuery(jq) {
+        $$1 = jq;
+        dataTable = jq.fn.dataTable;
+    }
+    var StateRestoreCollection = /** @class */ (function () {
+        function StateRestoreCollection(settings, opts) {
+            var _this = this;
+            // Check that the required version of DataTables is included
+            if (!dataTable || !dataTable.versionCheck || !dataTable.versionCheck('1.10.0')) {
+                throw new Error('StateRestore requires DataTables 1.10 or newer');
+            }
+            // Check that Select is included
+            // eslint-disable-next-line no-extra-parens
+            if (!dataTable.Buttons) {
+                throw new Error('StateRestore requires Buttons');
+            }
+            var table = new dataTable.Api(settings);
+            this.classes = $$1.extend(true, {}, StateRestoreCollection.classes);
+            if (table.settings()[0]._stateRestore !== undefined) {
+                return;
+            }
+            // Get options from user
+            this.c = $$1.extend(true, {}, StateRestoreCollection.defaults, opts);
+            this.s = {
+                dt: table,
+                hasColReorder: dataTable.ColReorder !== undefined,
+                hasScroller: dataTable.Scroller !== undefined,
+                hasSearchBuilder: dataTable.SearchBuilder !== undefined,
+                hasSearchPanes: dataTable.SearchPanes !== undefined,
+                hasSelect: dataTable.select !== undefined,
+                states: []
+            };
+            this.s.dt.on('xhr', function (e, xhrsettings, json) {
+                // Has staterestore been used before? Is there anything to load?
+                if (json && json.stateRestore) {
+                    _this._addPreDefined(json.stateRestore);
+                }
+            });
+            this.dom = {
+                background: $$1('<div class="' + this.classes.background + '"/>'),
+                checkboxInputRow: $$1('<div class="' + this.classes.formRow + '">' +
+                    '<label class="' + this.classes.nameLabel + '">' +
+                    this.s.dt.i18n('stateRestore.creationModal.toggleLabel', this.c.i18n.creationModal.toggleLabel) +
+                    '</label>' +
+                    '<div class="dtsr-input"></div>' +
+                    '</div>'),
+                closeButton: $$1('<div class="' + this.classes.closeButton + '">x</div>'),
+                colReorderToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.colReorderToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.colReorder', this.c.i18n.creationModal.colReorder) +
+                    '</div>'),
+                columnsSearchToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.columnsSearchToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.columns.search', this.c.i18n.creationModal.columns.search) +
+                    '</div>'),
+                columnsVisibleToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.columnsVisibleToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.columns.visible', this.c.i18n.creationModal.columns.visible) +
+                    '</div>'),
+                confirmation: $$1('<div class="' + this.classes.confirmation + '"/>'),
+                confirmationTitleRow: $$1('<div class="' + this.classes.confirmationTitleRow + '"></div>'),
+                createButtonRow: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.modalFoot + '">' +
+                    '<button class="' + this.classes.creationButton + ' ' + this.classes.dtButton + '">' +
+                    this.s.dt.i18n('stateRestore.creationModal.button', this.c.i18n.creationModal.button) +
+                    '</button>' +
+                    '</div>'),
+                creation: $$1('<div class="' + this.classes.creation + '"/>'),
+                creationForm: $$1('<div class="' + this.classes.creationForm + '"/>'),
+                creationTitle: $$1('<div class="' + this.classes.creationText + '">' +
+                    '<h2 class="' + this.classes.creationTitle + '">' +
+                    this.s.dt.i18n('stateRestore.creationModal.title', this.c.i18n.creationModal.title) +
+                    '</h2>' +
+                    '</div>'),
+                dtContainer: $$1(this.s.dt.table().container()),
+                duplicateError: $$1('<span class="' + this.classes.modalError + '">' +
+                    this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError) +
+                    '</span>'),
+                emptyError: $$1('<span class="' + this.classes.modalError + '">' +
+                    this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError) +
+                    '</span>'),
+                lengthToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.lengthToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.length', this.c.i18n.creationModal.length) +
+                    '</div>'),
+                nameInputRow: $$1('<div class="' + this.classes.formRow + '">' +
+                    '<label class="' + this.classes.nameLabel + '">' +
+                    this.s.dt.i18n('stateRestore.creationModal.name', this.c.i18n.creationModal.name) +
+                    '</label>' +
+                    '<div class="dtsr-input">' +
+                    '<input class="' + this.classes.nameInput + '" type="text">' +
+                    '</div>' +
+                    '</div>'),
+                orderToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.orderToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.order', this.c.i18n.creationModal.order) +
+                    '</div>'),
+                pagingToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.pagingToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.paging', this.c.i18n.creationModal.paging) +
+                    '</div>'),
+                removeContents: $$1('<div class="' + this.classes.confirmationText + '"><span></span></div>'),
+                removeTitle: $$1('<div class="' + this.classes.creationText + '">' +
+                    '<h2 class="' + this.classes.creationTitle + '">' +
+                    this.s.dt.i18n('stateRestore.removeTitle', this.c.i18n.removeTitle) +
+                    '</h2>' +
+                    '</div>'),
+                scrollerToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.scrollerToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.scroller', this.c.i18n.creationModal.scroller) +
+                    '</div>'),
+                searchBuilderToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.searchBuilderToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.searchBuilder', this.c.i18n.creationModal.searchBuilder) +
+                    '</div>'),
+                searchPanesToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.searchPanesToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.searchPanes', this.c.i18n.creationModal.searchPanes) +
+                    '</div>'),
+                searchToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.searchToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.search', this.c.i18n.creationModal.search) +
+                    '</div>'),
+                selectToggle: $$1('<div class="' + this.classes.checkLabel + '">' +
+                    '<input type="checkbox" class="' +
+                    this.classes.selectToggle + ' ' +
+                    this.classes.checkBox +
+                    '" checked>' +
+                    this.s.dt.i18n('stateRestore.creationModal.select', this.c.i18n.creationModal.select) +
+                    '</div>')
+            };
+            table.settings()[0]._stateRestore = this;
+            this._searchForStates();
+            // Has staterestore been used before? Is there anything to load?
+            this._addPreDefined(this.c.preDefined);
+            var ajaxFunction;
+            var ajaxData = {
+                action: 'load'
+            };
+            if (typeof this.c.ajax === 'function') {
+                ajaxFunction = function () {
+                    if (typeof _this.c.ajax === 'function') {
+                        _this.c.ajax.call(_this.s.dt, ajaxData, function (s) { return _this._addPreDefined(s); });
+                    }
+                };
+            }
+            else if (typeof this.c.ajax === 'string') {
+                ajaxFunction = function () {
+                    $$1.ajax({
+                        data: ajaxData,
+                        dataType: 'json',
+                        success: function (data) {
+                            _this._addPreDefined(data);
+                        },
+                        type: 'POST',
+                        url: _this.c.ajax
+                    });
+                };
+            }
+            if (typeof ajaxFunction === 'function') {
+                if (this.s.dt.settings()[0]._bInitComplete) {
+                    ajaxFunction();
+                }
+                else {
+                    this.s.dt.one('preInit.dtsr', function () {
+                        ajaxFunction();
+                    });
+                }
+            }
+            this.s.dt.on('destroy.dtsr', function () {
+                _this.destroy();
+            });
+            this.s.dt.on('draw.dtsr buttons-action.dtsr', function () { return _this.findActive(); });
+            return this;
+        }
+        /**
+         * Adds a new StateRestore instance to the collection based on the current properties of the table
+         *
+         * @param identifier The value that is used to identify a state.
+         * @returns The state that has been created
+         */
+        StateRestoreCollection.prototype.addState = function (identifier, currentIdentifiers, options) {
+            var _this = this;
+            // If creation/saving is not allowed then return
+            if (!this.c.create || !this.c.save) {
+                return;
+            }
+            // Check if the state exists before creating a new ones
+            var state = this.getState(identifier);
+            var createFunction = function (id, toggles) {
+                if (id.length === 0) {
+                    return 'empty';
+                }
+                else if (currentIdentifiers.includes(id)) {
+                    return 'duplicate';
+                }
+                _this.s.dt.state.save();
+                var that = _this;
+                var successCallback = function () {
+                    that.s.states.push(this);
+                    that._collectionRebuild();
+                };
+                var currState = _this.s.dt.state();
+                currState.stateRestore = {
+                    isPredefined: false,
+                    state: id,
+                    tableId: _this.s.dt.table().node().id
+                };
+                if (toggles.saveState) {
+                    var opts = _this.c.saveState;
+                    // We don't want to extend, but instead AND all properties of the saveState option
+                    for (var _i = 0, _a = Object.keys(toggles.saveState); _i < _a.length; _i++) {
+                        var key = _a[_i];
+                        if (typeof toggles.saveState[key] === 'object') {
+                            for (var _b = 0, _c = Object.keys(toggles.saveState[key]); _b < _c.length; _b++) {
+                                var nestedKey = _c[_b];
+                                if (!toggles.saveState[key][nestedKey]) {
+                                    opts[key][nestedKey] = false;
+                                }
+                            }
+                        }
+                        else if (!toggles.saveState[key]) {
+                            opts[key] = false;
+                        }
+                    }
+                    _this.c.saveState = opts;
+                }
+                var newState = new StateRestore(_this.s.dt.settings()[0], $$1.extend(true, {}, _this.c, options), id, currState, false, successCallback);
+                $$1(_this.s.dt.table().node()).on('dtsr-modal-inserted', function () {
+                    newState.dom.confirmation.one('dtsr-remove', function () { return _this._removeCallback(newState.s.identifier); });
+                    newState.dom.confirmation.one('dtsr-rename', function () { return _this._collectionRebuild(); });
+                    newState.dom.confirmation.one('dtsr-save', function () { return _this._collectionRebuild(); });
+                });
+                return true;
+            };
+            // If there isn't already a state with this identifier
+            if (state === null) {
+                if (this.c.creationModal || options !== undefined && options.creationModal) {
+                    this._creationModal(createFunction, identifier, options);
+                }
+                else {
+                    var success = createFunction(identifier, {});
+                    if (success === 'empty') {
+                        throw new Error(this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError));
+                    }
+                    else if (success === 'duplicate') {
+                        throw new Error(this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError));
+                    }
+                }
+            }
+            else {
+                throw new Error(this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError));
+            }
+        };
+        /**
+         * Removes all of the states, showing a modal to the user for confirmation
+         *
+         * @param removeFunction The action to be taken when the action is confirmed
+         */
+        StateRestoreCollection.prototype.removeAll = function (removeFunction) {
+            // There are no states to remove so just return
+            if (this.s.states.length === 0) {
+                return;
+            }
+            var ids = this.s.states.map(function (state) { return state.s.identifier; });
+            var replacementString = ids[0];
+            if (ids.length > 1) {
+                replacementString = ids.slice(0, -1).join(', ') +
+                    this.s.dt.i18n('stateRestore.removeJoiner', this.c.i18n.removeJoiner) +
+                    ids.slice(-1);
+            }
+            $$1(this.dom.removeContents.children('span')).html(this.s.dt
+                .i18n('stateRestore.removeConfirm', this.c.i18n.removeConfirm)
+                .replace(/%s/g, replacementString));
+            this._newModal(this.dom.removeTitle, this.s.dt.i18n('stateRestore.removeSubmit', this.c.i18n.removeSubmit), removeFunction, this.dom.removeContents);
+        };
+        /**
+         * Removes all of the dom elements from the document for the collection and the stored states
+         */
+        StateRestoreCollection.prototype.destroy = function () {
+            for (var _i = 0, _a = this.s.states; _i < _a.length; _i++) {
+                var state = _a[_i];
+                state.destroy();
+            }
+            $$1.each(this.dom, function (name, el) {
+                el.off().remove();
+            });
+            this.s.states = [];
+            this.s.dt.off('.dtsr');
+            $$1(this.s.dt.table().node()).off('.dtsr');
+        };
+        /**
+         * Identifies active states and updates their button to reflect this.
+         *
+         * @returns An array containing objects with the details of currently active states
+         */
+        StateRestoreCollection.prototype.findActive = function () {
+            // Make sure that the state is up to date
+            this.s.dt.state.save();
+            var currState = this.s.dt.state();
+            var button;
+            // Make all of the buttons inactive so that only any that match will be marked as active
+            var buttons = this.s.dt.buttons().nodes();
+            for (var _i = 0, buttons_1 = buttons; _i < buttons_1.length; _i++) {
+                button = buttons_1[_i];
+                if ($$1(button).hasClass('dtsr-state') || $$1(button).children().hasClass('dtsr-state')) {
+                    this.s.dt.button(button).active(false);
+                }
+            }
+            var results = [];
+            // Go through all of the states comparing if their state is the same to the current one
+            for (var _a = 0, _b = this.s.states; _a < _b.length; _a++) {
+                var state = _b[_a];
+                if (state.compare(currState)) {
+                    results.push({
+                        data: state.s.savedState,
+                        name: state.s.identifier
+                    });
+                    // If so, find the corresponding button and mark it as active
+                    for (var _c = 0, buttons_2 = buttons; _c < buttons_2.length; _c++) {
+                        button = buttons_2[_c];
+                        var btn = this.s.dt.button(button);
+                        if (btn.text() === state.s.identifier) {
+                            btn.active(true);
+                            break;
+                        }
+                    }
+                }
+            }
+            return results;
+        };
+        /**
+         * Gets a single state that has the identifier matching that which is passed in
+         *
+         * @param identifier The value that is used to identify a state
+         * @returns The state that has been identified or null if no states have been identified
+         */
+        StateRestoreCollection.prototype.getState = function (identifier) {
+            for (var _i = 0, _a = this.s.states; _i < _a.length; _i++) {
+                var state = _a[_i];
+                if (state.s.identifier === identifier) {
+                    return state;
+                }
+            }
+            return null;
+        };
+        /**
+         * Gets an array of all of the states
+         *
+         * @returns Any states that have been identified
+         */
+        StateRestoreCollection.prototype.getStates = function (ids) {
+            if (ids === undefined) {
+                return this.s.states;
+            }
+            else {
+                var states = [];
+                for (var _i = 0, ids_1 = ids; _i < ids_1.length; _i++) {
+                    var id = ids_1[_i];
+                    var found = false;
+                    for (var _a = 0, _b = this.s.states; _a < _b.length; _a++) {
+                        var state = _b[_a];
+                        if (id === state.s.identifier) {
+                            states.push(state);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        states.push(undefined);
+                    }
+                }
+                return states;
+            }
+        };
+        /**
+         * Reloads states that are set via datatables config or over ajax
+         *
+         * @param preDefined Object containing the predefined states that are to be reintroduced
+         */
+        StateRestoreCollection.prototype._addPreDefined = function (preDefined) {
+            var _this = this;
+            // There is a potential issue here if sorting where the string parts of the name are the same,
+            // only the number differs and there are many states - but this wouldn't be usfeul naming so
+            // more of a priority to sort alphabetically
+            var states = Object.keys(preDefined).sort(function (a, b) { return a > b ? 1 : a < b ? -1 : 0; });
+            var _loop_1 = function (state) {
+                for (var i = 0; i < this_1.s.states.length; i++) {
+                    if (this_1.s.states[i].s.identifier === state) {
+                        this_1.s.states.splice(i, 1);
+                    }
+                }
+                var that = this_1;
+                var successCallback = function () {
+                    that.s.states.push(this);
+                    that._collectionRebuild();
+                };
+                var loadedState = this_1._fixTypes(preDefined[state]);
+                var stateConfig = $$1.extend(true, {}, this_1.c, loadedState.c !== undefined ?
+                    {
+                        saveState: loadedState.c.saveState,
+                        remove: loadedState.c.remove,
+                        rename: loadedState.c.rename,
+                        save: loadedState.c.save
+                    } :
+                    undefined, true);
+                if (this_1.c.createState) {
+                    this_1.c.createState(stateConfig, loadedState);
+                }
+                var newState = new StateRestore(this_1.s.dt, stateConfig, state, loadedState, true, successCallback);
+                $$1(this_1.s.dt.table().node()).on('dtsr-modal-inserted', function () {
+                    newState.dom.confirmation.one('dtsr-remove', function () { return _this._removeCallback(newState.s.identifier); });
+                    newState.dom.confirmation.one('dtsr-rename', function () { return _this._collectionRebuild(); });
+                    newState.dom.confirmation.one('dtsr-save', function () { return _this._collectionRebuild(); });
+                });
+            };
+            var this_1 = this;
+            for (var _i = 0, states_1 = states; _i < states_1.length; _i++) {
+                var state = states_1[_i];
+                _loop_1(state);
+            }
+        };
+        /**
+         * Rebuilds all of the buttons in the collection of states to make sure that states and text is up to date
+         */
+        StateRestoreCollection.prototype._collectionRebuild = function () {
+            var button = this.s.dt.button('SaveStateRestore:name');
+            var stateButtons = [];
+            var i;
+            // Need to get the original configuration object, so we can rebuild it
+            // It might be nested, so need to traverse down the tree
+            if (button[0]) {
+                var idxs = button.index().split('-');
+                stateButtons = button[0].inst.c.buttons;
+                for (i = 0; i < idxs.length; i++) {
+                    if (stateButtons[idxs[i]].buttons) {
+                        stateButtons = stateButtons[idxs[i]].buttons;
+                    }
+                    else {
+                        stateButtons = [];
+                        break;
+                    }
+                }
+            }
+            // remove any states from the previous rebuild - if they are still there they will be added later
+            for (i = 0; i < stateButtons.length; i++) {
+                if (stateButtons[i].extend === 'stateRestore') {
+                    stateButtons.splice(i, 1);
+                    i--;
+                }
+            }
+            if (this.c._createInSaved) {
+                stateButtons.push('createState');
+            }
+            var emptyText = '<span class="' + this.classes.emptyStates + '">' +
+                this.s.dt.i18n('stateRestore.emptyStates', this.c.i18n.emptyStates) +
+                '</span>';
+            // If there are no states display an empty message
+            if (this.s.states.length === 0) {
+                // Don't want the empty text included more than twice
+                if (!stateButtons.includes(emptyText)) {
+                    stateButtons.push(emptyText);
+                }
+            }
+            else {
+                // There are states to add so there shouldn't be any empty text left!
+                while (stateButtons.includes(emptyText)) {
+                    stateButtons.splice(stateButtons.indexOf(emptyText), 1);
+                }
+                // There is a potential issue here if sorting where the string parts of the name are the same,
+                // only the number differs and there are many states - but this wouldn't be usfeul naming so
+                // more of a priority to sort alphabetically
+                this.s.states = this.s.states.sort(function (a, b) {
+                    var aId = a.s.identifier;
+                    var bId = b.s.identifier;
+                    return aId > bId ?
+                        1 :
+                        aId < bId ?
+                            -1 :
+                            0;
+                });
+                // Construct the split property of each button
+                for (var _i = 0, _a = this.s.states; _i < _a.length; _i++) {
+                    var state = _a[_i];
+                    var split = this.c.splitSecondaries.slice();
+                    if (split.includes('updateState') && (!this.c.save || !state.c.save)) {
+                        split.splice(split.indexOf('updateState'), 1);
+                    }
+                    if (split.includes('renameState') &&
+                        (!this.c.save || !state.c.save || !this.c.rename || !state.c.rename)) {
+                        split.splice(split.indexOf('renameState'), 1);
+                    }
+                    if (split.includes('removeState') && (!this.c.remove || !state.c.remove)) {
+                        split.splice(split.indexOf('removeState'), 1);
+                    }
+                    var buttonConfig = {
+                        _stateRestore: state,
+                        attr: {
+                            title: state.s.identifier
+                        },
+                        config: {
+                            split: split
+                        },
+                        extend: 'stateRestore',
+                        text: StateRestore.entityEncode(state.s.identifier),
+                        popoverTitle: StateRestore.entityEncode(state.s.identifier)
+                    };
+                    if (this.c.createButton) {
+                        this.c.createButton(buttonConfig, state.s.savedState);
+                    }
+                    stateButtons.push(buttonConfig);
+                }
+            }
+            button.collectionRebuild(stateButtons);
+            // Need to disable the removeAllStates button if there are no states and it is present
+            var buttons = this.s.dt.buttons();
+            for (var _b = 0, buttons_3 = buttons; _b < buttons_3.length; _b++) {
+                var butt = buttons_3[_b];
+                if ($$1(butt.node).hasClass('dtsr-removeAllStates')) {
+                    if (this.s.states.length === 0) {
+                        this.s.dt.button(butt.node).disable();
+                    }
+                    else {
+                        this.s.dt.button(butt.node).enable();
+                    }
+                }
+            }
+        };
+        /**
+         * Displays a modal that is used to get information from the user to create a new state.
+         *
+         * @param buttonAction The action that should be taken when the button is pressed
+         * @param identifier The default identifier for the next new state
+         */
+        StateRestoreCollection.prototype._creationModal = function (buttonAction, identifier, options) {
+            var _this = this;
+            this.dom.creation.empty();
+            this.dom.creationForm.empty();
+            this.dom.nameInputRow.find('input').val(identifier);
+            this.dom.creationForm.append(this.dom.nameInputRow);
+            var tableConfig = this.s.dt.settings()[0].oInit;
+            var toggle;
+            var togglesToInsert = [];
+            var toggleDefined = options !== undefined && options.toggle !== undefined;
+            // Order toggle - check toggle and saving enabled
+            if (((!toggleDefined || options.toggle.order === undefined) && this.c.toggle.order ||
+                toggleDefined && options.toggle.order) &&
+                this.c.saveState.order &&
+                (tableConfig.ordering === undefined || tableConfig.ordering)) {
+                togglesToInsert.push(this.dom.orderToggle);
+            }
+            // Search toggle - check toggle and saving enabled
+            if (((!toggleDefined || options.toggle.search === undefined) && this.c.toggle.search ||
+                toggleDefined && options.toggle.search) &&
+                this.c.saveState.search &&
+                (tableConfig.searching === undefined || tableConfig.searching)) {
+                togglesToInsert.push(this.dom.searchToggle);
+            }
+            // Paging toggle - check toggle and saving enabled
+            if (((!toggleDefined || options.toggle.paging === undefined) && this.c.toggle.paging ||
+                toggleDefined && options.toggle.paging) &&
+                this.c.saveState.paging &&
+                (tableConfig.paging === undefined || tableConfig.paging)) {
+                togglesToInsert.push(this.dom.pagingToggle);
+            }
+            // Page Length toggle - check toggle and saving enabled
+            if (((!toggleDefined || options.toggle.length === undefined) && this.c.toggle.length ||
+                toggleDefined && options.toggle.length) &&
+                this.c.saveState.length &&
+                (tableConfig.length === undefined || tableConfig.length)) {
+                togglesToInsert.push(this.dom.lengthToggle);
+            }
+            // ColReorder toggle - check toggle and saving enabled
+            if (this.s.hasColReorder &&
+                ((!toggleDefined || options.toggle.colReorder === undefined) && this.c.toggle.colReorder ||
+                    toggleDefined && options.toggle.colReorder) &&
+                this.c.saveState.colReorder) {
+                togglesToInsert.push(this.dom.colReorderToggle);
+            }
+            // Scroller toggle - check toggle and saving enabled
+            if (this.s.hasScroller &&
+                ((!toggleDefined || options.toggle.scroller === undefined) && this.c.toggle.scroller ||
+                    toggleDefined && options.toggle.scroller) &&
+                this.c.saveState.scroller) {
+                togglesToInsert.push(this.dom.scrollerToggle);
+            }
+            // SearchBuilder toggle - check toggle and saving enabled
+            if (this.s.hasSearchBuilder &&
+                ((!toggleDefined || options.toggle.searchBuilder === undefined) && this.c.toggle.searchBuilder ||
+                    toggleDefined && options.toggle.searchBuilder) &&
+                this.c.saveState.searchBuilder) {
+                togglesToInsert.push(this.dom.searchBuilderToggle);
+            }
+            // SearchPanes toggle - check toggle and saving enabled
+            if (this.s.hasSearchPanes &&
+                ((!toggleDefined || options.toggle.searchPanes === undefined) && this.c.toggle.searchPanes ||
+                    toggleDefined && options.toggle.searchPanes) &&
+                this.c.saveState.searchPanes) {
+                togglesToInsert.push(this.dom.searchPanesToggle);
+            }
+            // Select toggle - check toggle and saving enabled
+            if (this.s.hasSelect &&
+                ((!toggleDefined || options.toggle.select === undefined) && this.c.toggle.select ||
+                    toggleDefined && options.toggle.select) &&
+                this.c.saveState.select) {
+                togglesToInsert.push(this.dom.selectToggle);
+            }
+            // Columns toggle - check toggle and saving enabled
+            if (typeof this.c.toggle.columns === 'boolean' &&
+                ((!toggleDefined || options.toggle.order === undefined) && this.c.toggle.columns ||
+                    toggleDefined && options.toggle.order) &&
+                this.c.saveState.columns) {
+                togglesToInsert.push(this.dom.columnsSearchToggle);
+                togglesToInsert.push(this.dom.columnsVisibleToggle);
+            }
+            else if ((!toggleDefined || options.toggle.columns === undefined) && typeof this.c.toggle.columns !== 'boolean' ||
+                typeof options.toggle.order !== 'boolean') {
+                if (typeof this.c.saveState.columns !== 'boolean' && this.c.saveState.columns) {
+                    // Column search toggle - check toggle and saving enabled
+                    if ((
+                    // columns.search is defined when passed in
+                    toggleDefined &&
+                        options.toggle.columns !== undefined &&
+                        typeof options.toggle.columns !== 'boolean' &&
+                        options.toggle.columns.search ||
+                        // Columns search is not defined when passed in but is in defaults
+                        (!toggleDefined ||
+                            options.toggle.columns === undefined ||
+                            typeof options.toggle.columns !== 'boolean' && options.toggle.columns.search === undefined) &&
+                            typeof this.c.toggle.columns !== 'boolean' &&
+                            this.c.toggle.columns.search) &&
+                        this.c.saveState.columns.search) {
+                        togglesToInsert.push(this.dom.columnsSearchToggle);
+                    }
+                    // Column visiblity toggle - check toggle and saving enabled
+                    if ((
+                    // columns.visible is defined when passed in
+                    toggleDefined &&
+                        options.toggle.columns !== undefined &&
+                        typeof options.toggle.columns !== 'boolean' &&
+                        options.toggle.columns.visible ||
+                        // Columns visible is not defined when passed in but is in defaults
+                        (!toggleDefined ||
+                            options.toggle.columns === undefined ||
+                            typeof options.toggle.columns !== 'boolean' && options.toggle.columns.visible === undefined) &&
+                            typeof this.c.toggle.columns !== 'boolean' &&
+                            this.c.toggle.columns.visible) &&
+                        this.c.saveState.columns.visible) {
+                        togglesToInsert.push(this.dom.columnsVisibleToggle);
+                    }
+                }
+                else if (this.c.saveState.columns) {
+                    togglesToInsert.push(this.dom.columnsSearchToggle);
+                    togglesToInsert.push(this.dom.columnsVisibleToggle);
+                }
+            }
+            // Make sure that the toggles are displayed alphabetically
+            togglesToInsert.sort(function (a, b) {
+                var aVal = a.text();
+                var bVal = b.text();
+                if (aVal < bVal) {
+                    return -1;
+                }
+                else if (aVal > bVal) {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            });
+            // Append all of the toggles that are to be inserted
+            var checkboxesEl = this.dom.checkboxInputRow
+                .css('display', togglesToInsert.length ? 'block' : 'none')
+                .appendTo(this.dom.creationForm)
+                .find('div.dtsr-input')
+                .empty();
+            // let checkboxes = $('<div class="'+this.classes.formRow+' '+this.classes.checkRow+'"></div>')
+            // 	.appendTo(this.dom.creationForm);
+            for (var _i = 0, togglesToInsert_1 = togglesToInsert; _i < togglesToInsert_1.length; _i++) {
+                toggle = togglesToInsert_1[_i];
+                checkboxesEl.append(toggle);
+            }
+            // Insert the toggle label next to the first check box
+            // $(this.dom.creationForm.children('div.'+this.classes.checkRow)[0]).prepend(this.dom.toggleLabel);
+            // Insert the creation modal and the background
+            this.dom.background.appendTo(this.dom.dtContainer);
+            this.dom.creation
+                .append(this.dom.creationTitle)
+                .append(this.dom.creationForm)
+                .append(this.dom.createButtonRow)
+                .appendTo(this.dom.dtContainer);
+            $$1(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
+            // Allow the label to be clicked to toggle the checkbox
+            for (var _a = 0, togglesToInsert_2 = togglesToInsert; _a < togglesToInsert_2.length; _a++) {
+                toggle = togglesToInsert_2[_a];
+                $$1(toggle.children('label:last-child')).on('click', function () {
+                    toggle.children('input').prop('checked', !toggle.children('input').prop('checked'));
+                });
+            }
+            var creationButton = $$1('button.' + this.classes.creationButton.replace(/ /g, '.'));
+            var inputs = this.dom.creationForm.find('input');
+            // If there is an input focus on that
+            if (inputs.length > 0) {
+                $$1(inputs[0]).focus();
+            }
+            // Otherwise focus on the confirmation button
+            else {
+                creationButton.focus();
+            }
+            var background = $$1('div.' + this.classes.background.replace(/ /g, '.'));
+            var keyupFunction = function (e) {
+                if (e.key === 'Enter') {
+                    creationButton.click();
+                }
+                else if (e.key === 'Escape') {
+                    background.click();
+                }
+            };
+            if (this.c.modalCloseButton) {
+                this.dom.creation.append(this.dom.closeButton);
+                this.dom.closeButton.on('click', function () { return background.click(); });
+            }
+            creationButton.on('click', function () {
+                // Get the values of the checkBoxes
+                var saveState = {
+                    colReorder: _this.dom.colReorderToggle.find('input').is(':checked'),
+                    columns: {
+                        search: _this.dom.columnsSearchToggle.find('input').is(':checked'),
+                        visible: _this.dom.columnsVisibleToggle.find('input').is(':checked')
+                    },
+                    length: _this.dom.lengthToggle.find('input').is(':checked'),
+                    order: _this.dom.orderToggle.find('input').is(':checked'),
+                    paging: _this.dom.pagingToggle.find('input').is(':checked'),
+                    scroller: _this.dom.scrollerToggle.find('input').is(':checked'),
+                    search: _this.dom.searchToggle.find('input').is(':checked'),
+                    searchBuilder: _this.dom.searchBuilderToggle.find('input').is(':checked'),
+                    searchPanes: _this.dom.searchPanesToggle.find('input').is(':checked'),
+                    select: _this.dom.selectToggle.find('input').is(':checked')
+                };
+                // Call the buttons functionality passing in the identifier and what should be saved
+                var success = buttonAction($$1('input.' + _this.classes.nameInput.replace(/ /g, '.')).val(), { saveState: saveState });
+                if (success === true) {
+                    // Remove the dom elements as operation has completed
+                    _this.dom.background.remove();
+                    _this.dom.creation.remove();
+                    // Unbind the keyup function  - don't want it to run unnecessarily on every keypress that occurs
+                    $$1(document).unbind('keyup', keyupFunction);
+                }
+                else {
+                    _this.dom.creation.children('.' + _this.classes.modalError).remove();
+                    _this.dom.creation.append(_this.dom[success + 'Error']);
+                }
+            });
+            background.one('click', function () {
+                // Remove the dome elements as operation has been cancelled
+                _this.dom.background.remove();
+                _this.dom.creation.remove();
+                // Unbind the keyup function - don't want it to run unnecessarily on every keypress that occurs
+                $$1(document).unbind('keyup', keyupFunction);
+                // Rebuild the collection to ensure that the latest changes are present
+                _this._collectionRebuild();
+            });
+            // Have to listen to the keyup event as `escape` doesn't trigger keypress
+            $$1(document).on('keyup', keyupFunction);
+            // Need to save the state before the focus is lost when the modal is interacted with
+            this.s.dt.state.save();
+        };
+        /**
+         * Make sure the data for a state contains the expected data types
+         *
+         * @param state State
+         */
+        StateRestoreCollection.prototype._fixTypes = function (state) {
+            var i;
+            var fixNum = function (d, prop) {
+                var val = d[prop];
+                if (val !== undefined) {
+                    d[prop] = typeof val === 'number' ? val : parseInt(val);
+                }
+            };
+            var fixBool = function (d, prop) {
+                var val = d[prop];
+                if (val !== undefined) {
+                    d[prop] = typeof val !== 'string'
+                        ? val
+                        : val === 'true'
+                            ? true
+                            : false;
+                }
+            };
+            fixNum(state, 'start');
+            fixNum(state, 'length');
+            fixNum(state, 'time');
+            if (state.order) {
+                for (i = 0; i < state.order.length; i++) {
+                    fixNum(state.order[i], 0);
+                }
+            }
+            if (state.search) {
+                fixBool(state.search, 'caseInsensitive');
+                fixBool(state.search, 'regex');
+                fixBool(state.search, 'smart');
+                fixBool(state.search, 'visible');
+                fixBool(state.search, 'return');
+            }
+            if (state.columns) {
+                for (i = 0; i < state.columns.length; i++) {
+                    fixBool(state.columns[i], 'caseInsensitive');
+                    fixBool(state.columns[i], 'regex');
+                    fixBool(state.columns[i], 'smart');
+                    fixBool(state.columns[i], 'visible');
+                }
+            }
+            if (state.colReorder) {
+                for (i = 0; i < state.colReorder.length; i++) {
+                    fixNum(state.colReorder, i);
+                }
+            }
+            return state;
+        };
+        /**
+         * This callback is called when a state is removed.
+         * This removes the state from storage and also strips it's button from the container
+         *
+         * @param identifier The value that is used to identify a state
+         */
+        StateRestoreCollection.prototype._removeCallback = function (identifier) {
+            for (var i = 0; i < this.s.states.length; i++) {
+                if (this.s.states[i].s.identifier === identifier) {
+                    this.s.states.splice(i, 1);
+                    i--;
+                }
+            }
+            this._collectionRebuild();
+            return true;
+        };
+        /**
+         * Creates a new confirmation modal for the user to approve an action
+         *
+         * @param title The title that is to be displayed at the top of the modal
+         * @param buttonText The text that is to be displayed in the confirmation button of the modal
+         * @param buttonAction The action that should be taken when the confirmation button is pressed
+         * @param modalContents The contents for the main body of the modal
+         */
+        StateRestoreCollection.prototype._newModal = function (title, buttonText, buttonAction, modalContents) {
+            var _this = this;
+            this.dom.background.appendTo(this.dom.dtContainer);
+            this.dom.confirmationTitleRow.empty().append(title);
+            var confirmationButton = $$1('<button class="' + this.classes.confirmationButton + ' ' + this.classes.dtButton + '">' +
+                buttonText +
+                '</button>');
+            this.dom.confirmation
+                .empty()
+                .append(this.dom.confirmationTitleRow)
+                .append(modalContents)
+                .append($$1('<div class="' + this.classes.confirmationButtons + '"></div>')
+                .append(confirmationButton))
+                .appendTo(this.dom.dtContainer);
+            $$1(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
+            var inputs = modalContents.children('input');
+            // If there is an input focus on that
+            if (inputs.length > 0) {
+                $$1(inputs[0]).focus();
+            }
+            // Otherwise focus on the confirmation button
+            else {
+                confirmationButton.focus();
+            }
+            var background = $$1('div.' + this.classes.background.replace(/ /g, '.'));
+            var keyupFunction = function (e) {
+                // If enter same action as pressing the button
+                if (e.key === 'Enter') {
+                    confirmationButton.click();
+                }
+                // If escape close modal
+                else if (e.key === 'Escape') {
+                    background.click();
+                }
+            };
+            // When the button is clicked, call the appropriate action,
+            // remove the background and modal from the screen and unbind the keyup event.
+            confirmationButton.on('click', function () {
+                var success = buttonAction(true);
+                if (success === true) {
+                    _this.dom.background.remove();
+                    _this.dom.confirmation.remove();
+                    $$1(document).unbind('keyup', keyupFunction);
+                    confirmationButton.off('click');
+                }
+                else {
+                    _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
+                    _this.dom.confirmation.append(_this.dom[success + 'Error']);
+                }
+            });
+            this.dom.confirmation.on('click', function (e) {
+                e.stopPropagation();
+            });
+            // When the button is clicked, remove the background and modal from the screen and unbind the keyup event.
+            background.one('click', function () {
+                _this.dom.background.remove();
+                _this.dom.confirmation.remove();
+                $$1(document).unbind('keyup', keyupFunction);
+            });
+            $$1(document).on('keyup', keyupFunction);
+        };
+        /**
+         * Private method that checks for previously created states on initialisation
+         */
+        StateRestoreCollection.prototype._searchForStates = function () {
+            var _this = this;
+            var keys = Object.keys(localStorage);
+            var _loop_2 = function (key) {
+                // Check if the key belongs to this page / table
+                if (key.startsWith('DataTables_stateRestore_') &&
+                    (key.endsWith(location.pathname) ||
+                        key.endsWith(location.pathname + '_' + this_2.s.dt.table().node().id))) {
+                    var loadedState_1 = JSON.parse(localStorage.getItem(key));
+                    if (loadedState_1.stateRestore.isPreDefined ||
+                        (loadedState_1.stateRestore.tableId &&
+                            loadedState_1.stateRestore.tableId !== this_2.s.dt.table().node().id)) {
+                        return "continue";
+                    }
+                    var that_1 = this_2;
+                    var successCallback = function () {
+                        this.s.savedState = loadedState_1;
+                        that_1.s.states.push(this);
+                        that_1._collectionRebuild();
+                    };
+                    var newState_1 = new StateRestore(this_2.s.dt, $$1.extend(true, {}, this_2.c, { saveState: loadedState_1.c.saveState }), loadedState_1.stateRestore.state, loadedState_1, false, successCallback);
+                    $$1(this_2.s.dt.table().node()).on('dtsr-modal-inserted', function () {
+                        newState_1.dom.confirmation.one('dtsr-remove', function () { return _this._removeCallback(newState_1.s.identifier); });
+                        newState_1.dom.confirmation.one('dtsr-rename', function () { return _this._collectionRebuild(); });
+                        newState_1.dom.confirmation.one('dtsr-save', function () { return _this._collectionRebuild(); });
+                    });
+                }
+            };
+            var this_2 = this;
+            for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+                var key = keys_1[_i];
+                _loop_2(key);
+            }
+        };
+        StateRestoreCollection.version = '1.0.0';
+        StateRestoreCollection.classes = {
+            background: 'dtsr-background',
+            checkBox: 'dtsr-check-box',
+            checkLabel: 'dtsr-check-label',
+            checkRow: 'dtsr-check-row',
+            closeButton: 'dtsr-popover-close',
+            colReorderToggle: 'dtsr-colReorder-toggle',
+            columnsSearchToggle: 'dtsr-columns-search-toggle',
+            columnsVisibleToggle: 'dtsr-columns-visible-toggle',
+            confirmation: 'dtsr-confirmation',
+            confirmationButton: 'dtsr-confirmation-button',
+            confirmationButtons: 'dtsr-confirmation-buttons',
+            confirmationMessage: 'dtsr-confirmation-message dtsr-name-label',
+            confirmationText: 'dtsr-confirmation-text',
+            confirmationTitle: 'dtsr-confirmation-title',
+            confirmationTitleRow: 'dtsr-confirmation-title-row',
+            creation: 'dtsr-creation',
+            creationButton: 'dtsr-creation-button',
+            creationForm: 'dtsr-creation-form',
+            creationText: 'dtsr-creation-text',
+            creationTitle: 'dtsr-creation-title',
+            dtButton: 'dt-button',
+            emptyStates: 'dtsr-emptyStates',
+            formRow: 'dtsr-form-row',
+            leftSide: 'dtsr-left',
+            lengthToggle: 'dtsr-length-toggle',
+            modalError: 'dtsr-modal-error',
+            modalFoot: 'dtsr-modal-foot',
+            nameInput: 'dtsr-name-input',
+            nameLabel: 'dtsr-name-label',
+            orderToggle: 'dtsr-order-toggle',
+            pagingToggle: 'dtsr-paging-toggle',
+            rightSide: 'dtsr-right',
+            scrollerToggle: 'dtsr-scroller-toggle',
+            searchBuilderToggle: 'dtsr-searchBuilder-toggle',
+            searchPanesToggle: 'dtsr-searchPanes-toggle',
+            searchToggle: 'dtsr-search-toggle',
+            selectToggle: 'dtsr-select-toggle',
+            toggleLabel: 'dtsr-toggle-title'
+        };
+        StateRestoreCollection.defaults = {
+            _createInSaved: false,
+            ajax: false,
+            create: true,
+            creationModal: false,
+            i18n: {
+                creationModal: {
+                    button: 'Create',
+                    colReorder: 'Column Order',
+                    columns: {
+                        search: 'Column Search',
+                        visible: 'Column Visibility'
+                    },
+                    length: 'Page Length',
+                    name: 'Name:',
+                    order: 'Sorting',
+                    paging: 'Paging',
+                    scroller: 'Scroll Position',
+                    search: 'Search',
+                    searchBuilder: 'SearchBuilder',
+                    searchPanes: 'SearchPanes',
+                    select: 'Select',
+                    title: 'Create New State',
+                    toggleLabel: 'Include:'
+                },
+                duplicateError: 'A state with this name already exists.',
+                emptyError: 'Name cannot be empty.',
+                emptyStates: 'No saved states',
+                removeConfirm: 'Are you sure you want to remove %s?',
+                removeError: 'Failed to remove state.',
+                removeJoiner: ' and ',
+                removeSubmit: 'Remove',
+                removeTitle: 'Remove State',
+                renameButton: 'Rename',
+                renameLabel: 'New Name for %s:',
+                renameTitle: 'Rename State'
+            },
+            modalCloseButton: true,
+            preDefined: {},
+            remove: true,
+            rename: true,
+            save: true,
+            saveState: {
+                colReorder: true,
+                columns: {
+                    search: true,
+                    visible: true
+                },
+                length: true,
+                order: true,
+                paging: true,
+                scroller: true,
+                search: true,
+                searchBuilder: true,
+                searchPanes: true,
+                select: true
+            },
+            splitSecondaries: [
+                'updateState',
+                'renameState',
+                'removeState'
+            ],
+            toggle: {
+                colReorder: false,
+                columns: {
+                    search: false,
+                    visible: false
+                },
+                length: false,
+                order: false,
+                paging: false,
+                scroller: false,
+                search: false,
+                searchBuilder: false,
+                searchPanes: false,
+                select: false
+            },
+            createButton: null,
+            createState: null
+        };
+        return StateRestoreCollection;
+    }());
+
+    /*! StateRestore 1.4.3
+     * © SpryMedia Ltd - datatables.net/license
+     */
+    setJQuery$1($);
+    setJQuery($);
+    $.fn.dataTable.StateRestore = StateRestore;
+    $.fn.DataTable.StateRestore = StateRestore;
+    $.fn.dataTable.StateRestoreCollection = StateRestoreCollection;
+    $.fn.DataTable.StateRestoreCollection = StateRestoreCollection;
+    var apiRegister = DataTable.Api.register;
+    apiRegister('stateRestore()', function () {
+        return this;
+    });
+    apiRegister('stateRestore.state()', function (identifier) {
+        var ctx = this.context[0];
+        if (!ctx._stateRestore) {
+            var api = DataTable.Api(ctx);
+            var src = new DataTable.StateRestoreCollection(api, {});
+            _stateRegen(api, src);
+        }
+        this[0] = ctx._stateRestore.getState(identifier);
+        return this;
+    });
+    apiRegister('stateRestore.state.add()', function (identifier, options) {
+        var ctx = this.context[0];
+        if (!ctx._stateRestore) {
+            var api = DataTable.Api(ctx);
+            var src = new DataTable.StateRestoreCollection(api, {});
+            _stateRegen(api, src);
+        }
+        if (!ctx._stateRestore.c.create) {
+            return this;
+        }
+        if (ctx._stateRestore.addState) {
+            var states = ctx._stateRestore.s.states;
+            var ids = [];
+            for (var _i = 0, states_1 = states; _i < states_1.length; _i++) {
+                var intState = states_1[_i];
+                ids.push(intState.s.identifier);
+            }
+            ctx._stateRestore.addState(identifier, ids, options);
+            return this;
+        }
+    });
+    apiRegister('stateRestore.states()', function (ids) {
+        var ctx = this.context[0];
+        if (!ctx._stateRestore) {
+            var api = DataTable.Api(ctx);
+            var src = new DataTable.StateRestoreCollection(api, {});
+            _stateRegen(api, src);
+        }
+        this.length = 0;
+        this.push.apply(this, ctx._stateRestore.getStates(ids));
+        return this;
+    });
+    apiRegister('stateRestore.state().save()', function () {
+        var ctx = this[0];
+        // Check if saving states is allowed
+        if (ctx.c.save) {
+            ctx.save();
+        }
+        return this;
+    });
+    apiRegister('stateRestore.state().rename()', function (newIdentifier) {
+        var ctx = this.context[0];
+        var state = this[0];
+        // Check if renaming states is allowed
+        if (state.c.save) {
+            var states = ctx._stateRestore.s.states;
+            var ids = [];
+            for (var _i = 0, states_2 = states; _i < states_2.length; _i++) {
+                var intState = states_2[_i];
+                ids.push(intState.s.identifier);
+            }
+            state.rename(newIdentifier, ids);
+        }
+        return this;
+    });
+    apiRegister('stateRestore.state().load()', function () {
+        var ctx = this[0];
+        ctx.load();
+        return this;
+    });
+    apiRegister('stateRestore.state().remove()', function (skipModal) {
+        var ctx = this[0];
+        // Check if removal of states is allowed
+        if (ctx.c.remove) {
+            ctx.remove(skipModal);
+        }
+        return this;
+    });
+    apiRegister('stateRestore.states().remove()', function (skipModal) {
+        var _this = this;
+        var removeAllCallBack = function (skipModalIn) {
+            var success = true;
+            var that = _this.toArray();
+            while (that.length > 0) {
+                var set = that[0];
+                if (set !== undefined && set.c.remove) {
+                    var tempSuccess = set.remove(skipModalIn);
+                    if (tempSuccess !== true) {
+                        success = tempSuccess;
+                    }
+                    else {
+                        that.splice(0, 1);
+                    }
+                }
+                else {
+                    break;
+                }
+            }
+            return success;
+        };
+        if (this.context[0]._stateRestore && this.context[0]._stateRestore.c.remove) {
+            if (skipModal) {
+                removeAllCallBack(skipModal);
+            }
+            else {
+                this.context[0]._stateRestore.removeAll(removeAllCallBack);
+            }
+        }
+        return this;
+    });
+    apiRegister('stateRestore.activeStates()', function () {
+        var ctx = this.context[0];
+        this.length = 0;
+        if (!ctx._stateRestore) {
+            var api = DataTable.Api(ctx);
+            var src = new DataTable.StateRestoreCollection(api, {});
+            _stateRegen(api, src);
+        }
+        if (ctx._stateRestore) {
+            this.push.apply(this, ctx._stateRestore.findActive());
+        }
+        return this;
+    });
+    DataTable.ext.buttons.stateRestore = {
+        action: function (e, dt, node, config) {
+            config._stateRestore.load();
+            node.blur();
+        },
+        className: 'dtsr-state',
+        config: {
+            split: ['updateState', 'renameState', 'removeState']
+        },
+        text: function (dt) {
+            return dt.i18n('buttons.stateRestore', 'State %d', dt.stateRestore.states()[0].length + 1);
+        }
+    };
+    DataTable.ext.buttons.updateState = {
+        action: function (e, dt, node, config) {
+            $('div.dt-button-background').click();
+            config.parent._stateRestore.save();
+        },
+        text: function (dt) {
+            return dt.i18n('buttons.updateState', 'Update');
+        }
+    };
+    DataTable.ext.buttons.savedStates = {
+        buttons: [],
+        extend: 'collection',
+        init: function (dt, node, config) {
+            dt.on('stateRestore-change', function () {
+                dt.button(node).text(dt.i18n('buttons.savedStates', 'Saved States', dt.stateRestore.states().length));
+            });
+            if (dt.settings()[0]._stateRestore === undefined) {
+                _buttonInit(dt, config);
+            }
+        },
+        name: 'SaveStateRestore',
+        text: function (dt) {
+            return dt.i18n('buttons.savedStates', 'Saved States', 0);
+        }
+    };
+    DataTable.ext.buttons.savedStatesCreate = {
+        buttons: [],
+        extend: 'collection',
+        init: function (dt, node, config) {
+            dt.on('stateRestore-change', function () {
+                dt.button(node).text(dt.i18n('buttons.savedStates', 'Saved States', dt.stateRestore.states().length));
+            });
+            if (dt.settings()[0]._stateRestore === undefined) {
+                if (config.config === undefined) {
+                    config.config = {};
+                }
+                config.config._createInSaved = true;
+                _buttonInit(dt, config);
+            }
+        },
+        name: 'SaveStateRestore',
+        text: function (dt) {
+            return dt.i18n('buttons.savedStates', 'Saved States', 0);
+        }
+    };
+    DataTable.ext.buttons.createState = {
+        action: function (e, dt, node, config) {
+            e.stopPropagation();
+            var stateRestoreOpts = dt.settings()[0]._stateRestore.c;
+            var language = dt.settings()[0].oLanguage;
+            // If creation/saving is not allowed then return
+            if (!stateRestoreOpts.create || !stateRestoreOpts.save) {
+                return;
+            }
+            var prevStates = dt.stateRestore.states().toArray();
+            // Create a replacement regex based on the i18n values
+            var defaultString = language.buttons !== undefined && language.buttons.stateRestore !== undefined ?
+                language.buttons.stateRestore :
+                'State ';
+            var replaceRegex;
+            if (defaultString.indexOf('%d') === defaultString.length - 3) {
+                replaceRegex = new RegExp(defaultString.replace(/%d/g, ''));
+            }
+            else {
+                var splitString = defaultString.split('%d');
+                replaceRegex = [];
+                for (var _i = 0, splitString_1 = splitString; _i < splitString_1.length; _i++) {
+                    var parts = splitString_1[_i];
+                    replaceRegex.push(new RegExp(parts));
+                }
+            }
+            var getId = function (identifier) {
+                var id;
+                if (Array.isArray(replaceRegex)) {
+                    id = identifier;
+                    for (var _i = 0, replaceRegex_1 = replaceRegex; _i < replaceRegex_1.length; _i++) {
+                        var reg = replaceRegex_1[_i];
+                        id = id.replace(reg, '');
+                    }
+                }
+                else {
+                    id = identifier.replace(replaceRegex, '');
+                }
+                // If the id after replacement is not a number, or the length is the same as before,
+                //  it has been customised so return 0
+                if (isNaN(+id) || id.length === identifier) {
+                    return 0;
+                }
+                // Otherwise return the number that has been assigned previously
+                else {
+                    return +id;
+                }
+            };
+            // Extract the numbers from the identifiers that use the standard naming convention
+            var identifiers = prevStates
+                .map(function (state) { return getId(state.s.identifier); })
+                .sort(function (a, b) { return +a < +b ?
+                1 :
+                +a > +b ?
+                    -1 :
+                    0; });
+            var lastNumber = identifiers[0];
+            dt.stateRestore.state.add(dt.i18n('buttons.stateRestore', 'State %d', lastNumber !== undefined ? lastNumber + 1 : 1), config.config);
+            var states = dt.stateRestore.states().sort(function (a, b) {
+                var aId = +getId(a.s.identifier);
+                var bId = +getId(b.s.identifier);
+                return aId > bId ?
+                    1 :
+                    aId < bId ?
+                        -1 :
+                        0;
+            });
+            var button = dt.button('SaveStateRestore:name');
+            var buttonIndex = parseInt(button.index());
+            var stateButtons = button[0] !== undefined && button[0].inst.c.buttons[buttonIndex].buttons !== undefined ?
+                button[0].inst.c.buttons[buttonIndex].buttons :
+                [];
+            // remove any states from the previous rebuild - if they are still there they will be added later
+            for (var i = 0; i < stateButtons.length; i++) {
+                if (stateButtons[i].extend === 'stateRestore') {
+                    stateButtons.splice(i, 1);
+                    i--;
+                }
+            }
+            if (stateRestoreOpts._createInSaved) {
+                stateButtons.push('createState');
+            }
+            for (var _a = 0, states_3 = states; _a < states_3.length; _a++) {
+                var state = states_3[_a];
+                var split = stateRestoreOpts.splitSecondaries.slice();
+                if (split.includes('updateState') && !stateRestoreOpts.save) {
+                    split.splice(split.indexOf('updateState'), 1);
+                }
+                if (split.includes('renameState') &&
+                    (!stateRestoreOpts.save || !stateRestoreOpts.rename)) {
+                    split.splice(split.indexOf('renameState'), 1);
+                }
+                if (split.includes('removeState') && !stateRestoreOpts.remove) {
+                    split.splice(split.indexOf('removeState'), 1);
+                }
+                stateButtons.push({
+                    _stateRestore: state,
+                    attr: {
+                        title: state.s.identifier
+                    },
+                    config: {
+                        split: split
+                    },
+                    extend: 'stateRestore',
+                    text: StateRestore.entityEncode(state.s.identifier),
+                    popoverTitle: StateRestore.entityEncode(state.s.identifier)
+                });
+            }
+            dt.button('SaveStateRestore:name').collectionRebuild(stateButtons);
+            node.blur();
+            // Need to disable the removeAllStates button if there are no states and it is present
+            var buttons = dt.buttons();
+            for (var _b = 0, buttons_1 = buttons; _b < buttons_1.length; _b++) {
+                var butt = buttons_1[_b];
+                if ($(butt.node).hasClass('dtsr-removeAllStates')) {
+                    if (states.length === 0) {
+                        dt.button(butt.node).disable();
+                    }
+                    else {
+                        dt.button(butt.node).enable();
+                    }
+                }
+            }
+        },
+        init: function (dt, node, config) {
+            if (dt.settings()[0]._stateRestore === undefined && dt.button('SaveStateRestore:name').length > 1) {
+                _buttonInit(dt, config);
+            }
+        },
+        text: function (dt) {
+            return dt.i18n('buttons.createState', 'Create State');
+        }
+    };
+    DataTable.ext.buttons.removeState = {
+        action: function (e, dt, node, config) {
+            config.parent._stateRestore.remove();
+            node.blur();
+        },
+        text: function (dt) {
+            return dt.i18n('buttons.removeState', 'Remove');
+        }
+    };
+    DataTable.ext.buttons.removeAllStates = {
+        action: function (e, dt, node) {
+            dt.stateRestore.states().remove(true);
+            node.blur();
+        },
+        className: 'dt-button dtsr-removeAllStates',
+        init: function (dt, node) {
+            if (!dt.settings()[0]._stateRestore || dt.stateRestore.states().length === 0) {
+                $(node).addClass('disabled');
+            }
+        },
+        text: function (dt) {
+            return dt.i18n('buttons.removeAllStates', 'Remove All States');
+        }
+    };
+    DataTable.ext.buttons.renameState = {
+        action: function (e, dt, node, config) {
+            var states = dt.settings()[0]._stateRestore.s.states;
+            var ids = [];
+            for (var _i = 0, states_4 = states; _i < states_4.length; _i++) {
+                var state = states_4[_i];
+                ids.push(state.s.identifier);
+            }
+            config.parent._stateRestore.rename(undefined, ids);
+            node.blur();
+        },
+        text: function (dt) {
+            return dt.i18n('buttons.renameState', 'Rename');
+        }
+    };
+    function _init(settings, options) {
+        if (options === void 0) { options = null; }
+        var api = new DataTable.Api(settings);
+        var opts = options
+            ? options
+            : api.init().stateRestore || DataTable.defaults.stateRestore;
+        var stateRestore = new StateRestoreCollection(api, opts);
+        _stateRegen(api, stateRestore);
+        return stateRestore;
+    }
+    /**
+     * Initialisation function if initialising using a button
+     *
+     * @param dt The datatables instance
+     * @param config the config for the button
+     */
+    function _buttonInit(dt, config) {
+        var SRC = new DataTable.StateRestoreCollection(dt, config.config);
+        _stateRegen(dt, SRC);
+    }
+    function _stateRegen(dt, src) {
+        var states = dt.stateRestore.states();
+        var button = dt.button('SaveStateRestore:name');
+        var stateButtons = [];
+        var i;
+        // Need to get the original configuration object, so we can rebuild it
+        // It might be nested, so need to traverse down the tree
+        if (button[0]) {
+            var idxs = button.index().split('-');
+            stateButtons = button[0].inst.c.buttons;
+            for (i = 0; i < idxs.length; i++) {
+                if (stateButtons[idxs[i]].buttons) {
+                    stateButtons = stateButtons[idxs[i]].buttons;
+                }
+                else {
+                    stateButtons = [];
+                    break;
+                }
+            }
+        }
+        var stateRestoreOpts = dt.settings()[0]._stateRestore.c;
+        // remove any states from the previous rebuild - if they are still there they will be added later
+        for (i = 0; i < stateButtons.length; i++) {
+            if (stateButtons[i].extend === 'stateRestore') {
+                stateButtons.splice(i, 1);
+                i--;
+            }
+        }
+        if (stateRestoreOpts._createInSaved) {
+            stateButtons.push('createState');
+        }
+        if (states === undefined || states.length === 0) {
+            stateButtons.push('<span class="' + src.classes.emptyStates + '">' +
+                dt.i18n('stateRestore.emptyStates', src.c.i18n.emptyStates) +
+                '</span>');
+        }
+        else {
+            for (var _i = 0, states_5 = states; _i < states_5.length; _i++) {
+                var state = states_5[_i];
+                var split = stateRestoreOpts.splitSecondaries.slice();
+                if (split.includes('updateState') && !stateRestoreOpts.save) {
+                    split.splice(split.indexOf('updateState'), 1);
+                }
+                if (split.includes('renameState') &&
+                    (!stateRestoreOpts.save || !stateRestoreOpts.rename)) {
+                    split.splice(split.indexOf('renameState'), 1);
+                }
+                if (split.includes('removeState') && !stateRestoreOpts.remove) {
+                    split.splice(split.indexOf('removeState'), 1);
+                }
+                stateButtons.push({
+                    _stateRestore: state,
+                    attr: {
+                        title: state.s.identifier
+                    },
+                    config: {
+                        split: split
+                    },
+                    extend: 'stateRestore',
+                    text: StateRestore.entityEncode(state.s.identifier),
+                    popoverTitle: StateRestore.entityEncode(state.s.identifier)
+                });
+            }
+        }
+        dt.button('SaveStateRestore:name').collectionRebuild(stateButtons);
+        // Need to disable the removeAllStates button if there are no states and it is present
+        var buttons = dt.buttons();
+        for (var _a = 0, buttons_2 = buttons; _a < buttons_2.length; _a++) {
+            var butt = buttons_2[_a];
+            if ($(butt.node).hasClass('dtsr-removeAllStates')) {
+                if (states.length === 0) {
+                    dt.button(butt.node).disable();
+                }
+                else {
+                    dt.button(butt.node).enable();
+                }
+            }
+        }
+    }
+    // Attach a listener to the document which listens for DataTables initialisation
+    // events so we can automatically initialise
+    $(document).on('preInit.dt.dtsr', function (e, settings) {
+        if (e.namespace !== 'dt') {
+            return;
+        }
+        if (settings.oInit.stateRestore ||
+            DataTable.defaults.stateRestore) {
+            if (!settings._stateRestore) {
+                _init(settings, null);
+            }
+        }
+    });
+
+})();
+
+
+return DataTable;
+}));
+
+
+/*! Bootstrap integration for DataTables' StateRestore
+ * © SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net-bs5', 'datatables.net-staterestore'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net-bs5')(root, $);
+			}
+
+			if ( ! $.fn.dataTable.StateRestore ) {
+				require('datatables.net-staterestore')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+$.extend(true, DataTable.StateRestoreCollection.classes, {
+    checkBox: 'dtsr-check-box form-check-input',
+    checkLabel: 'dtsr-check-label form-check-label',
+    checkRow: 'dtsr-check-row form-check',
+    creationButton: 'dtsr-creation-button btn btn-secondary',
+    creationForm: 'dtsr-creation-form modal-body',
+    creationText: 'dtsr-creation-text modal-header',
+    creationTitle: 'dtsr-creation-title modal-title',
+    nameInput: 'dtsr-name-input form-control',
+    nameLabel: 'dtsr-name-label form-label'
+});
+$.extend(true, DataTable.StateRestore.classes, {
+    confirmationButton: 'dtsr-confirmation-button btn btn-secondary',
+    input: 'dtsr-input form-control'
 });
 
 
