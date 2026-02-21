@@ -26,7 +26,6 @@ Simple Student Information System (SSIS) is a borderless desktop app built with 
 - ⚡ Fast search, sort, and pagination via DataTables
 - 🔗 Cascading referential integrity (e.g., deleting a college nullifies linked program records)
 - 🌙 Persistent dark/light theme toggle saved across sessions
-- 🖥️ Borderless custom title bar with draggable region
 
 ---
 
@@ -155,6 +154,9 @@ ssis/
 # Clone the repository
 git clone <repo-url>
 cd ssis
+
+# Install neutralino libraries
+neu update
 
 # Start the development server with hot reload
 neu run
