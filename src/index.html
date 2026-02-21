@@ -609,6 +609,12 @@
 
     <!-- Neutralino -->
     <script src="/js/neutralino/neutralino.js"></script>
+    <script>
+        Neutralino.init();
+        Neutralino.events.on("ready", async () => {
+            await Neutralino.window.show();
+        });
+    </script>
 
     <!-- Plugins -->
     <script src="/js/jquery/jquery.js"></script>

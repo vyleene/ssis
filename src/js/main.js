@@ -172,8 +172,6 @@ function showToast(message, variant) {
     }
 }
 
-Neutralino.init();
-
 $(document).ready(async () => {
     await initTitleBar();
     initDirectoryNav();
