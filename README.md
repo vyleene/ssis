@@ -2,6 +2,12 @@
 
 A lightweight desktop application for managing academic directory records — Students, Programs, and Colleges — backed by local CSV files and delivered via the Neutralino runtime.
 
+<div align="center">
+
+![App Demo](docs/demo.png)
+
+</div>
+
 ---
 
 ## 📋 Overview
