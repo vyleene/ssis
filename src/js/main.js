@@ -77,6 +77,13 @@ function initDataTable(tableId, data = null, columns = null) {
         programsTable: { openInfo: openProgramInfoModal },
         collegesTable: { openInfo: openCollegeInfoModal },
     }[tableId];
+
+    const tableOrder = {
+        studentsTable: [[0, 'asc']],
+        programsTable: [[2, 'asc']],
+        collegesTable: [[0, 'asc']]
+    };
+
     const options = {
         responsive: true,
         fixedHeader: true,
@@ -87,6 +94,7 @@ function initDataTable(tableId, data = null, columns = null) {
         autoWidth: false,
         pageLength: 10,
         stateSave: true,
+        ...(tableOrder[tableId] ? { order: tableOrder[tableId] } : {}),
         select: {
             style: 'single',
             selector: 'td:not(.actions-col)'
@@ -95,7 +103,7 @@ function initDataTable(tableId, data = null, columns = null) {
             if(!tableMeta?.openInfo) return;
             const api = this.api();
             const $node = $(api.table().node());
-            $node.off('select.dt.infoModal').on('select.dt.infoModal', function(event, dt, type, indexes) {
+            $node.off('select.dt.infoModal').on('select.dt.infoModal', function(_, dt, type, indexes) {
                 if(type !== 'row' || !indexes?.length) return;
                 const rowData = dt.row(indexes[0]).data();
                 if(!rowData || !Array.isArray(rowData)) return;
