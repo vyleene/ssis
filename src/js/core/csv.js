@@ -3,8 +3,8 @@ const csvConfigs = [
     {
         tableId: 'studentsTable',
         csvPath: 'csv/students.csv',
-        headerLine: 'ID,First Name,Last Name,Program Code,Year,Gender',
-        headers: ['ID', 'First Name', 'Last Name', 'Program Code', 'Year', 'Gender'],
+        headerLine: 'id,firstname,lastname,programcode,year,gender',
+        headers: ['id', 'firstname', 'lastname', 'programcode', 'year', 'gender'],
         columns: 6,
         tableColumns: [
             { data: 0 },
@@ -25,8 +25,8 @@ const csvConfigs = [
     {
         tableId: 'programsTable',
         csvPath: 'csv/programs.csv',
-        headerLine: 'Code,Name,College',
-        headers: ['Code', 'Name', 'College'],
+        headerLine: 'code,name,college',
+        headers: ['code', 'name', 'college'],
         columns: 3,
         tableColumns: [
             { data: 0 },
@@ -45,8 +45,8 @@ const csvConfigs = [
     {
         tableId: 'collegesTable',
         csvPath: 'csv/colleges.csv',
-        headerLine: 'Code,Name',
-        headers: ['Code', 'Name'],
+        headerLine: 'code,name',
+        headers: ['code', 'name'],
         columns: 2,
         tableColumns: [
             { data: 0 },
@@ -103,7 +103,7 @@ function parseCsvRecords(csvText, expectedHeaders, expectedColumns) {
     if(!headerLine) return { records: [], empty: true };
 
     const header = headerLine.split(',');
-    const headerMatches = expectedHeaders.every((expected, index) => (header[index] || '').trim() === expected);
+    const headerMatches = expectedHeaders.every((expected, index) => (header[index] || '').trim().toLowerCase() === expected.toLowerCase());
 
     if(!headerMatches) throw new Error('CSV header mismatch.');
     const records = [];
