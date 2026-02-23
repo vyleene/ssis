@@ -185,6 +185,14 @@ function openStudentInfoModal(values) {
     }
 }
 
+$(document).on('click', '#btn-upload-student', async () => {
+    const results = await importCsv('studentsTable');
+    if (!results) return;
+
+    await reloadStudentTable({ showNullWarning: false });
+    showImportModal(results);
+});
+
 $(document).on('click', '#btn-refresh-student', () => reloadStudentTable());
 
 $(document).on('click', '#btn-add-student', () => openStudentModal('add'));

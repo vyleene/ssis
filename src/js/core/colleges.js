@@ -231,6 +231,14 @@ async function openCollegeInfoModal(values) {
     }
 }
 
+$(document).on('click', '#btn-upload-college', async () => {
+    const results = await importCsv('collegesTable');
+    if (!results) return;
+
+    await reloadCollegeTable({ showNullWarning: false });
+    showImportModal(results);
+});
+
 $(document).on('click', '#btn-refresh-college', () => reloadCollegeTable());
 
 $(document).on('click', '#btn-add-college', () => openCollegeModal('add'));

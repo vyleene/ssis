@@ -227,6 +227,14 @@ async function openProgramInfoModal(values) {
     }
 }
 
+$(document).on('click', '#btn-upload-program', async () => {
+    const results = await importCsv('programsTable');
+    if (!results) return;
+
+    await reloadProgramTable({ showNullWarning: false });
+    showImportModal(results);
+});
+
 $(document).on('click', '#btn-refresh-program', () => reloadProgramTable());
 
 $(document).on('click', '#btn-add-program', () => openProgramModal('add'));

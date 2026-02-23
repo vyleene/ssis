@@ -1,3 +1,7 @@
+/* =============================================================================
+   CSS CUSTOM PROPERTIES
+   ============================================================================= */
+
 :root {
     --app-bg: var(--bs-body-bg);
     --app-text: var(--bs-body-color);
@@ -59,6 +63,11 @@ html[data-bs-theme="dark"] {
     --dt-row-selected-link: 27, 31, 38;
 }
 
+
+/* =============================================================================
+   BASE / LAYOUT
+   ============================================================================= */
+
 body {
     margin: 0;
     background-color: var(--app-bg);
@@ -70,10 +79,17 @@ body {
     transition: opacity 0.15s ease;
 }
 
-
 html.theme-loading body {
     opacity: 0;
 }
+
+.app-content {
+    max-width: 1200px;
+}
+
+/* =============================================================================
+   TITLEBAR
+   ============================================================================= */
 
 .app-titlebar {
     position: sticky;
@@ -146,7 +162,6 @@ html.theme-loading body {
     border-color: var(--app-danger-border);
 }
 
-
 .titlebar-btn--theme {
     width: 36px;
     padding: 0;
@@ -160,13 +175,10 @@ html.theme-loading body {
     place-items: center;
 }
 
-html[data-bs-theme="dark"] .theme-icon--moon {
-    display: none;
-}
 
-html:not([data-bs-theme="dark"]) .theme-icon--sun {
-    display: none;
-}
+/* =============================================================================
+   THEME ICONS
+   ============================================================================= */
 
 .theme-icon--sun {
     color: #f59f00 !important;
@@ -179,6 +191,15 @@ html:not([data-bs-theme="dark"]) .theme-icon--sun {
 html:not([data-bs-theme="dark"]) .theme-icon--sun {
     display: none;
 }
+
+html[data-bs-theme="dark"] .theme-icon--moon {
+    display: none;
+}
+
+
+/* =============================================================================
+   TOAST
+   ============================================================================= */
 
 .toast-container {
     position: fixed;
@@ -214,6 +235,11 @@ html:not([data-bs-theme="dark"]) .theme-icon--sun {
     }
 }
 
+
+/* =============================================================================
+   NAVIGATION
+   ============================================================================= */
+
 .app-nav {
     background: linear-gradient(135deg, var(--app-surface), var(--app-surface-2));
     border-bottom: 1px solid var(--app-border);
@@ -236,11 +262,10 @@ html:not([data-bs-theme="dark"]) .theme-icon--sun {
     padding: 9px 15px;
     border-radius: 999px;
     border: 1px solid var(--app-border);
-    background: var(--app-soft);
+    background: var(--app-hover);
     color: var(--app-muted);
     font-weight: 600;
     font-size: 0.85rem;
-    background: var(--app-hover);
     transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
@@ -256,19 +281,15 @@ html:not([data-bs-theme="dark"]) .theme-icon--sun {
     box-shadow: none;
 }
 
-.app-nav__item.is-active .heroicon-url {
-    color: #ffffff;
-}
-
 .app-nav__item.is-active .heroicon-url,
 html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     color: var(--app-primary-contrast);
 }
 
-.app-content {
-    max-width: 1200px;
-}
 
+/* =============================================================================
+   PAGE HEADER & CARDS
+   ============================================================================= */
 
 .page-header {
     padding-bottom: 14px;
@@ -296,6 +317,10 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     position: relative;
 }
 
+.card-body {
+    padding: 1.25rem;
+}
+
 .directory-panel {
     display: none;
     opacity: 0;
@@ -309,12 +334,48 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     transform: translateY(0);
 }
 
-.card-body {
-    padding: 1.25rem;
-}
+
+/* =============================================================================
+   TABLE
+   ============================================================================= */
 
 .table {
     margin-bottom: 0;
+    color: var(--app-text);
+}
+
+.table > :not(caption) > * > * {
+    background-color: var(--app-surface);
+}
+
+.table-light > * {
+    background-color: var(--app-soft) !important;
+    color: var(--app-muted);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--app-striped);
+}
+
+.table-hover > tbody > tr:hover > * {
+    background-color: var(--app-accent-soft);
+}
+
+.table thead th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.72rem;
+    color: var(--app-muted);
+    border-bottom: 1px solid var(--app-border);
+    background-color: var(--app-soft) !important;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: var(--app-accent-soft);
 }
 
 .table-shell {
@@ -338,20 +399,37 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     display: flex;
 }
 
-.table thead th {
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.72rem;
-    color: var(--app-muted);
-    border-bottom: 1px solid var(--app-border);
+.actions-col {
+    width: 112px;
+    min-width: 112px;
 }
 
-.table tbody tr {
-    transition: background-color 0.2s ease;
+
+/* =============================================================================
+   DATATABLES
+   ============================================================================= */
+
+table.dataTable tbody td {
+    cursor: pointer !important;
 }
 
-.table tbody tr:hover {
-    background-color: var(--app-accent-soft);
+table.dataTable tbody td.actions-col,
+table.dataTable tbody td.dataTables_empty,
+table.dataTable tbody td.dt-control {
+    cursor: default !important;
+}
+
+table.dataTable tbody td.actions-col button {
+    cursor: pointer !important;
+}
+
+table.table.dataTable > tbody > tr.selected > * {
+    background-color: rgba(var(--dt-row-selected), 0.85) !important;
+    color: rgb(var(--dt-row-selected-text)) !important;
+}
+
+table.table.dataTable.table-striped > tbody > tr.selected > * {
+    background-color: rgba(var(--dt-row-selected), 0.85) !important;
 }
 
 .dt-search {
@@ -387,6 +465,77 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     font-size: 1rem;
 }
 
+.dataTables_wrapper {
+    color: var(--app-text);
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    background-color: var(--app-input-bg);
+    border-color: var(--app-input-border);
+    color: var(--app-input-text);
+}
+
+.dataTables_wrapper .dataTables_filter input::placeholder {
+    color: var(--app-input-placeholder);
+}
+
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_paginate {
+    color: var(--app-muted);
+}
+
+.dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper .dataTables_length label {
+    color: var(--app-muted);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--app-text) !important;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border) !important;
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    color: var(--app-text) !important;
+    background: var(--app-hover) !important;
+    border-color: var(--app-border) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    color: var(--app-primary-contrast) !important;
+    background: var(--app-accent-strong) !important;
+    border-color: var(--app-accent-strong) !important;
+    box-shadow: none;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    color: var(--app-muted) !important;
+    background: var(--app-surface) !important;
+    border-color: var(--app-border) !important;
+    opacity: 0.6;
+}
+
+.dataTables_wrapper .dataTables_paginate span,
+.dataTables_wrapper .dataTables_paginate .ellipsis {
+    color: var(--app-muted) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem var(--app-accent-glow);
+}
+
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
 
 .btn-primary {
     border: none;
@@ -399,7 +548,6 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     color: var(--app-primary-contrast) !important;
 }
 
-
 .btn-primary:hover {
     background: color-mix(in srgb, var(--app-accent-strong) 85%, #000000 15%) !important;
 }
@@ -407,7 +555,6 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
 .btn-primary:active {
     background: var(--app-accent-strong) !important;
 }
-
 
 .btn-outline-primary {
     border-color: var(--app-accent-strong);
@@ -455,6 +602,23 @@ html[data-bs-theme="dark"] .btn-outline-primary.active {
     color: var(--app-danger);
 }
 
+.btn-secondary {
+    background: var(--app-soft) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+}
+
+.btn-secondary:hover {
+    background: var(--app-hover) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+}
+
+.btn-secondary:active {
+    background: var(--app-soft) !important;
+    border-color: var(--app-border) !important;
+}
+
 table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary,
 table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-danger {
     border-color: transparent;
@@ -479,22 +643,10 @@ table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary 
     color: var(--app-accent-strong);
 }
 
-.btn-secondary {
-    background: var(--app-soft) !important;
-    border-color: var(--app-border) !important;
-    color: var(--app-text) !important;
-}
 
-.btn-secondary:hover {
-    background: var(--app-hover) !important;
-    border-color: var(--app-border) !important;
-    color: var(--app-text) !important;
-}
-
-.btn-secondary:active {
-    background: var(--app-soft) !important;
-    border-color: var(--app-border) !important;
-}
+/* =============================================================================
+   FORMS
+   ============================================================================= */
 
 .form-control,
 .form-select,
@@ -514,55 +666,10 @@ table.table.dataTable > tbody > tr.selected td.actions-col .btn-outline-primary 
     box-shadow: 0 0 0 0.2rem var(--app-accent-glow);
 }
 
-.table {
-    color: var(--app-text);
-}
 
-.table > :not(caption) > * > * {
-    background-color: var(--app-surface);
-}
-
-.table-light > * {
-    background-color: var(--app-soft) !important;
-    color: var(--app-muted);
-}
-
-.table-striped > tbody > tr:nth-of-type(odd) > * {
-    background-color: var(--app-striped);
-}
-
-.table-hover > tbody > tr:hover > * {
-    background-color: var(--app-accent-soft);
-}
-
-.table thead th {
-    background-color: var(--app-soft) !important;
-}
-
-table.dataTable tbody td {
-    cursor: pointer !important;
-}
-
-table.table.dataTable > tbody > tr.selected > * {
-    background-color: rgba(var(--dt-row-selected), 0.85) !important;
-    color: rgb(var(--dt-row-selected-text)) !important;
-}
-
-table.table.dataTable.table-striped > tbody > tr.selected > * {
-    background-color: rgba(var(--dt-row-selected), 0.85) !important;
-}
-
-table.dataTable tbody td.actions-col,
-table.dataTable tbody td.dataTables_empty,
-table.dataTable tbody td.dt-control {
-    cursor: default !important;
-}
-
-table.dataTable tbody td.actions-col button {
-    cursor: pointer !important;
-}
-
-
+/* =============================================================================
+   PAGINATION
+   ============================================================================= */
 
 .page-link {
     background-color: var(--app-surface);
@@ -576,80 +683,20 @@ table.dataTable tbody td.actions-col button {
     color: var(--app-text);
 }
 
+.page-link:focus {
+    box-shadow: none;
+}
+
 .page-item.active .page-link {
     background-color: var(--app-accent-strong);
     border-color: var(--app-accent-strong);
     color: var(--app-primary-contrast);
 }
 
-.dataTables_wrapper {
-    color: var(--app-text);
-}
 
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select {
-    background-color: var(--app-input-bg);
-    border-color: var(--app-input-border);
-    color: var(--app-input-text);
-}
-
-.dataTables_wrapper .dataTables_filter input::placeholder {
-    color: var(--app-input-placeholder);
-}
-
-.dataTables_wrapper .dataTables_info,
-.dataTables_wrapper .dataTables_length,
-.dataTables_wrapper .dataTables_filter,
-.dataTables_wrapper .dataTables_paginate {
-    color: var(--app-muted);
-}
-
-.dataTables_wrapper .dataTables_filter label,
-.dataTables_wrapper .dataTables_length label {
-    color: var(--app-muted);
-}
-
-.dataTables_wrapper .dataTables_paginate .paginate_button {
-    color: var(--app-text) !important;
-    background: var(--app-surface);
-    border: 1px solid var(--app-border) !important;
-    border-radius: 6px;
-    box-shadow: none;
-}
-
-
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-    color: var(--app-text) !important;
-    background: var(--app-hover) !important;
-    border-color: var(--app-border) !important;
-}
-
-.dataTables_wrapper .dataTables_paginate .paginate_button.current,
-.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-    color: var(--app-primary-contrast) !important;
-    background: var(--app-accent-strong) !important;
-    border-color: var(--app-accent-strong) !important;
-    box-shadow: none;
-}
-
-
-.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
-    color: var(--app-muted) !important;
-    background: var(--app-surface) !important;
-    border-color: var(--app-border) !important;
-    opacity: 0.6;
-}
-
-.dataTables_wrapper .dataTables_paginate span,
-.dataTables_wrapper .dataTables_paginate .ellipsis {
-    color: var(--app-muted) !important;
-}
-
-.dataTables_wrapper .dataTables_paginate .paginate_button:focus {
-    outline: none;
-    box-shadow: 0 0 0 0.2rem var(--app-accent-glow);
-}
+/* =============================================================================
+   MODAL
+   ============================================================================= */
 
 .modal-content,
 .modal-header,
@@ -658,6 +705,11 @@ table.dataTable tbody td.actions-col button {
     border-color: var(--app-border);
     color: var(--app-text);
 }
+
+
+/* =============================================================================
+   STUDENT INFO
+   ============================================================================= */
 
 .student-info__header {
     display: grid;
@@ -734,7 +786,6 @@ table.dataTable tbody td.actions-col button {
     margin: 0;
 }
 
-
 .student-info__badge {
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -780,15 +831,17 @@ table.dataTable tbody td.actions-col button {
     font-size: 0.88rem;
 }
 
+
+/* =============================================================================
+   UTILITIES
+   ============================================================================= */
+
+#importResultSummary {
+    background-color: var(--app-primary) !important;
+    color: var(--app-primary-contrast) !important;
+    border: 1px solid var(--app-accent-strong) !important;
+}
+
 .heroicon-url {
     color: currentColor;
-}
-
-.page-link:focus {
-    box-shadow: none;
-}
-
-.actions-col {
-    width: 112px;
-    min-width: 112px;
 }

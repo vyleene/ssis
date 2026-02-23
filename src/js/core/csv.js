@@ -195,3 +195,128 @@ async function deleteCsvRecord({ csvPath, headerLine, key, keyIndex }) {
     await Neutralino.filesystem.writeFile(normalizedPath, [header, ...remaining].join('\n') + '\n');
     return { status: 'deleted' };
 }
+
+async function promptCsvFile() {
+    try {
+        const entries = await Neutralino.os.showOpenDialog('Open CSV File', {
+            filters: [
+                { name: 'CSV Files', extensions: ['csv'] }
+            ],
+            multiSelections: false
+        });
+
+        if (!entries || entries.length === 0) return null;
+
+        const content = await Neutralino.filesystem.readFile(entries[0]);
+        return content;
+
+    } catch (error) {
+        if (error.code === 'NE_OS_UNLTOUP') return null;
+        throw error;
+    }
+}
+
+async function importCsv(tableId) {
+    const config = csvConfigs.find((c) => c.tableId === tableId);
+    if(!config) return;
+
+    let csvText;
+    try {
+        csvText = await promptCsvFile();
+    } catch (err) {
+        showImportModal([{ record: '', status: 'error', reason: 'Error reading file' }]);
+        return;
+    }
+    if(csvText === null) return false;
+
+    let parsed;
+    try {
+        parsed = parseCsvRecords(csvText, config.headers, config.columns);
+    } catch (err) {
+        const msg = err.message || '';
+        const reason = msg.startsWith('CSV') ? `Error: ${msg}` : msg;
+        showImportModal([{ record: '', status: 'error', reason }]);
+        return;
+    }
+
+    const { records, empty } = parsed;
+    if(empty || !Array.isArray(records) || records.length === 0) {
+        showImportModal([{ record: '', status: 'error', reason: 'No records found in import file' }]);
+        return;
+    }
+
+    const { rows: existingRows } = await getCsvHeaderAndRows(config.csvPath, config.headerLine);
+    const existingKeys = new Set(existingRows.map((line) => ((line.split(',')[0] || '').trim())));
+
+    const programSet = new Set();
+    const collegeSet = new Set();
+    if(tableId === 'studentsTable') {
+        const { rows: progRows } = await getCsvHeaderAndRows(csvConfigs[1].csvPath, csvConfigs[1].headerLine);
+        progRows.forEach((line) => {
+            const code = (line.split(',')[0] || '').trim();
+            if(code) programSet.add(code);
+        });
+    } else if(tableId === 'programsTable') {
+        const { rows: colRows } = await getCsvHeaderAndRows(csvConfigs[2].csvPath, csvConfigs[2].headerLine);
+        colRows.forEach((line) => {
+            const code = (line.split(',')[0] || '').trim();
+            if(code) collegeSet.add(code);
+        });
+    }
+
+    const seenInImport = new Set();
+    const results = [];
+
+    for(const row of records) {
+        const key = (row[0] || '').trim();
+        const recordText = row.join(',');
+
+        if(seenInImport.has(key) || existingKeys.has(key)) {
+            let reason;
+            if(tableId === 'studentsTable') reason = 'Student ID already exists';
+            else if(tableId === 'programsTable') reason = 'Program Code already exists';
+            else if(tableId === 'collegesTable') reason = 'College Code already exists';
+            results.push({ record: recordText, status: 'duplicate', reason });
+            seenInImport.add(key);
+            continue;
+        }
+
+        seenInImport.add(key);
+
+        if(tableId === 'studentsTable') {
+            let progCode = (row[3] || '').trim();
+            if(progCode && progCode.toUpperCase() !== 'NULL' && !programSet.has(progCode)) {
+                results.push({ record: recordText, status: 'missing', reason: 'Invalid program code' });
+                continue;
+            }
+        } else if(tableId === 'programsTable') {
+            let colCode = (row[2] || '').trim();
+            if(colCode && colCode.toUpperCase() !== 'NULL' && !collegeSet.has(colCode)) {
+                results.push({ record: recordText, status: 'missing', reason: 'Invalid college code' });
+                continue;
+            }
+        }
+
+        try {
+            const payload = {
+                csvPath: config.csvPath,
+                headerLine: config.headerLine,
+                key,
+                keyIndex: 0,
+                rowValues: row,
+                mode: 'add',
+            };
+            const res = await writeCsvRecord(payload);
+            if(res.status === 'added') {
+                results.push({ record: recordText, status: 'success' });
+                existingKeys.add(key);
+            } else {
+                results.push({ record: recordText, status: 'duplicate' });
+            }
+        } catch (err) {
+            results.push({ record: recordText, status: 'error' });
+        }
+    }
+
+    return results;
+}

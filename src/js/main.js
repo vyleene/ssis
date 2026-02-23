@@ -64,7 +64,7 @@ function initDirectoryNav() {
     });
 }
 
-function initDataTable(tableId, data = null, columns = null) {
+function initDataTable(tableId, data = null, columns = null, extraOptions = {}) {
     if(typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') return;
 
     const $table = $(`#${tableId}`);
@@ -111,6 +111,8 @@ function initDataTable(tableId, data = null, columns = null) {
             });
         }
     };
+
+    Object.assign(options, extraOptions);
 
     if(Array.isArray(data) && Array.isArray(columns)) {
         options.data = data;
@@ -177,6 +179,45 @@ function showToast(message, variant) {
     } else {
         $toastEl.addClass('show');
         setTimeout(() => $toastEl.remove(), toastDuration);
+    }
+}
+
+function showImportModal(results) {
+    const addedCount = results.filter(r => r.status === 'success').length;
+    const dupCount = results.filter(r => r.status === 'duplicate').length;
+    const missingCount = results.filter(r => r.status === 'missing').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    let summary = `${addedCount} record${addedCount === 1 ? '' : 's'} imported.`;
+    if(dupCount) summary += ` ${dupCount} duplicate${dupCount === 1 ? '' : 's'} skipped.`;
+    if(missingCount) summary += ` ${missingCount} invalid${missingCount === 1 ? '' : 's'} skipped.`;
+    if(errorCount) summary += ` ${errorCount} error${errorCount === 1 ? '' : 's'}.`;
+    $('#importResultSummary').html(`<b>SUMMARY:</b> ${summary}`);
+
+    const statusBadge = (status, reason) => {
+        const text = reason || (status === 'success' ? 'Imported' : status);
+        switch(status) {
+            case 'success':
+                return `<span class="badge bg-success">${text}</span>`;
+            case 'duplicate':
+                return `<span class="badge bg-warning text-dark">${text}</span>`;
+            case 'missing':
+                return `<span class="badge bg-danger">${text}</span>`;
+            case 'error':
+                return `<span class="badge bg-danger">${text}</span>`;
+            default:
+                return `<span class="badge bg-secondary">${text}</span>`;
+        }
+    }
+
+    const rows = results.map((r) => [r.record, statusBadge(r.status, r.reason)]);
+    initDataTable('importResultTable', rows, [
+        { data: 0 },
+        { data: 1, orderable: false, searchable: false }
+    ], { searching: false, select: false });
+    const modalEl = document.getElementById('importResultModal');
+    const ModalClass = window.bootstrap?.Modal;
+    if(ModalClass && modalEl) {
+        ModalClass.getOrCreateInstance(modalEl).show();
     }
 }
 
