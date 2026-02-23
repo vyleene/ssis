@@ -1,4 +1,7 @@
-# 🎓 Acadex
+<h1>
+  <img src="docs/appicon.png" width="48" height="48" alt="Acadex icon" style="vertical-align:middle;margin-right:-9px;" />
+  cadex
+</h1>
 
 A lightweight desktop application for managing academic directory records — Students, Programs, and Colleges — backed by local CSV files and delivered via the Neutralino runtime.
 
