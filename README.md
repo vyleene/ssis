@@ -1,4 +1,4 @@
-# 🎓 Simple Student Information System
+# 🎓 Acadex
 
 A lightweight desktop application for managing academic directory records — Students, Programs, and Colleges — backed by local CSV files and delivered via the Neutralino runtime.
 
@@ -12,7 +12,7 @@ A lightweight desktop application for managing academic directory records — St
 
 ## 📋 Overview
 
-Simple Student Information System (SSIS) is a borderless desktop app built with Neutralino.js and a Bootstrap 5 UI. It provides full CRUD operations across three linked directories with fast, searchable, and sortable DataTables grids. All data is persisted locally in plain CSV files with schema validation on every load.
+Acadex is a desktop app built with Neutralino.js and a Bootstrap 5 UI. It provides full CRUD operations across three linked directories with fast, searchable, and sortable DataTables grids. All data is persisted locally in plain CSV files with schema validation on every load.
 
 ---
 
@@ -55,7 +55,7 @@ Simple Student Information System (SSIS) is a borderless desktop app built with 
 | `Year` | String | Required | Year level (e.g., `1`, `2`, `3`, `4`) |
 | `Gender` | String | Required | Gender (e.g., `Male`, `Female`) |
 
-**CSV header:** `ID,First Name,Last Name,Program Code,Year,Gender`
+**CSV header:** `id,firstname,lastname,programcode,year,gender`
 
 ---
 
@@ -67,7 +67,7 @@ Simple Student Information System (SSIS) is a borderless desktop app built with 
 | `Name` | String | Required | Full program name |
 | `College` | String | FK → Colleges.Code, nullable (`NULL`) | Parent college |
 
-**CSV header:** `Code,Name,College`
+**CSV header:** `code,name,college`
 
 ---
 
@@ -78,26 +78,14 @@ Simple Student Information System (SSIS) is a borderless desktop app built with 
 | `Code` | String | Primary Key, Required | Unique college code (e.g., `CCS`) |
 | `Name` | String | Required | Full college name |
 
-**CSV header:** `Code,Name`
-
----
-
-### 🔗 Relationships
-
-```
-Colleges (1) ──── (0..*) Programs (1) ──── (0..*) Students
-```
-
-- Deleting a **College** nullifies the `College` field on all linked Programs.
-- Deleting a **Program** nullifies the `Program Code` field on all linked Students.
-- Editing a **College Code** or **Program Code** cascades the update to all referencing records.
+**CSV header:** `code,name`
 
 ---
 
 ## 🗂️ Project Structure
 
 ```
-ssis/
+acadex/
 ├── neutralino.config.json       # App configuration (window, CLI, API allowlist)
 ├── src/
 │   ├── index.html               # Single-page shell — layout, modals, script tags
@@ -110,7 +98,7 @@ ssis/
 │   │   └── heroicons/
 │   │       └── heroicons.css    # Heroicon CSS sprite references
 │   ├── img/
-│   │   ├── appIcon.png          # Application window icon
+│   │   ├── appIcon.ico          # Application window icon
 │   │   └── heroicons/
 │   │       ├── outline/         # Outline SVG icons
 │   │       └── solid/           # Solid SVG icons
@@ -153,7 +141,7 @@ ssis/
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd ssis
+cd acadex
 
 # Install neutralino libraries
 neu update
@@ -170,8 +158,6 @@ The app window will open automatically. The `csv/` directory is created on first
 # Build binaries for the current platform
 neu build
 ```
-
-Output binaries are placed in the `dist/` directory. The build produces a self-contained executable (`ssis.exe` on Windows) alongside a `resources.neu` bundle.
 
 To build for a specific platform, refer to the [Neutralino build documentation](https://neutralino.js.org/docs/cli/neu-cli#neu-build).
 
