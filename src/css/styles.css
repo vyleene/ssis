@@ -399,6 +399,10 @@ html[data-bs-theme="dark"] .app-nav__item.is-active .heroicon-url {
     display: flex;
 }
 
+.spinner-border {
+    color: var(--app-accent-strong) !important;
+}
+
 .actions-col {
     width: 112px;
     min-width: 112px;
