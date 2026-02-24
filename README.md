@@ -22,19 +22,6 @@ Acadex is a desktop app built with Neutralino.js and a Bootstrap 5 UI. It provid
 
 ---
 
-## ✨ Features
-
-- 📁 Three linked directories: Students, Programs, and Colleges
-- ✏️ Full create, read, update, and delete flows with modal forms
-- 🔍 Row-click info panels for detailed record views
-- 💾 Local CSV persistence with header schema validation
-- ⚠️ NULL value detection with in-app warnings
-- ⚡ Fast search, sort, and pagination via DataTables
-- 🔗 Cascading referential integrity (e.g., deleting a college nullifies linked program records)
-- 🌙 Persistent dark/light theme toggle saved across sessions
-
----
-
 ## 🧰 Tech Stack
 
 | Technology | Version | Role |
@@ -166,12 +153,3 @@ neu build
 ```
 
 To build for a specific platform, refer to the [Neutralino build documentation](https://neutralino.js.org/docs/cli/neu-cli#neu-build).
-
----
-
-## 📌 Notes
-
-- CSV headers are validated on every load; a schema mismatch will surface as an error toast.
-- Empty datasets are handled gracefully — a warning toast is shown but the app remains functional.
-- Theme preference (dark/light) is persisted via Neutralino's storage API across sessions.
-- The `csv/` directory is relative to the binary's working directory and is created automatically.
