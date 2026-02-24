@@ -31,19 +31,6 @@ Acadex is a desktop app built with Neutralino.js and a Bootstrap 5 UI. It provid
 
 ---
 
-## 🧰 Tech Stack
-
-| Technology | Version | Role |
-|---|---|---|
-| [Neutralino.js](https://neutralino.js.org/) | 6.5.0 | Desktop runtime (replaces Electron) |
-| [Bootstrap](https://getbootstrap.com/) | 5.x | UI component framework and theming |
-| [jQuery](https://jquery.com/) | 3.x | DOM manipulation and event handling |
-| [DataTables](https://datatables.net/) | 2.x | Table rendering, search, sort, pagination |
-| [Moment.js](https://momentjs.com/) | 2.x | Date formatting utilities |
-| [Heroicons](https://heroicons.com/) | 2.x | SVG icon set (outline + solid variants) |
-
----
-
 ## 🧾 Data Model
 
 ### 👤 Students
