@@ -50,7 +50,7 @@ function populateCollegeOptions(records = collegeRecordsCache) {
     const sourceRecords = Array.isArray(records) ? records : collegeRecordsCache;
     const $select = $('#program-college');
     const codes = Array.from(new Set(sourceRecords.map(([code]) => code))).sort();
-    const collegeOptionsTemplate = [$('<option>').attr({ value: '', selected: true, disabled: true }).text('Select college code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
+    const collegeOptionsTemplate = [$('<option>').attr({ value: '', selected: true, hidden: true }).text('Select college code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
 
     if(!$select.length) return;
 

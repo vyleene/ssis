@@ -56,7 +56,7 @@ function populateProgramOptions(records = programRecordsCache) {
     const sourceRecords = Array.isArray(records) ? records : programRecordsCache;
     const $select = $('#student-program');
     const codes = Array.from(new Set(sourceRecords.map(([code]) => code))).sort();
-    const programOptionsTemplate = [$('<option>').attr({ value: '', selected: true, disabled: true }).text('Select program code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
+    const programOptionsTemplate = [$('<option>').attr({ value: '', selected: true, hidden: true }).text('Select program code'), ...codes.map((code) => $('<option>').attr({ value: code }).text(code))];
 
     if(!$select.length) return;
 
